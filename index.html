@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Simon Rosen — Linguist &amp; Evaluation Engineer</title>
+<meta name="description" content="Simon Rosen — Senior ML Data Linguist. Evaluation architecture for LLM-based and agentic conversational systems: LLM-as-judge pipelines, rubric frameworks, and speech quality measurement.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%239a4a22'/%3E%3Ctext x='32' y='44' font-family='Georgia,serif' font-size='34' font-weight='bold' fill='%23f7f3ec' text-anchor='middle'%3ESR%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,300..700&family=Inter:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f7f3ec;
+    --bg-raised: #fffdf8;
+    --ink: #211c16;
+    --ink-soft: #57503f;
+    --ink-faint: #8a8170;
+    --accent: #9a4a22;
+    --accent-soft: #c4744a;
+    --rule: #ddd5c6;
+    --rule-soft: #e8e2d5;
+    --chip-bg: #efe9dd;
+    --wave: #9a4a22;
+    --shadow: 0 1px 2px rgba(33,28,22,.04), 0 8px 28px rgba(33,28,22,.07);
+  }
+  [data-theme="dark"] {
+    --bg: #16130e;
+    --bg-raised: #1e1a14;
+    --ink: #ece5d8;
+    --ink-soft: #b3a994;
+    --ink-faint: #7d745f;
+    --accent: #d98b5a;
+    --accent-soft: #b06a3e;
+    --rule: #352f25;
+    --rule-soft: #2a251c;
+    --chip-bg: #262118;
+    --wave: #d98b5a;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 28px rgba(0,0,0,.35);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "Inter", system-ui, sans-serif;
+    font-size: 16.5px;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+    transition: background-color .4s ease, color .4s ease;
+  }
+
+  ::selection { background: var(--accent); color: var(--bg); }
+
+  .wrap { max-width: 880px; margin: 0 auto; padding-left: 28px; padding-right: 28px; }
+
+  /* ---------- Nav ---------- */
+  nav {
+    position: sticky; top: 0; z-index: 50;
+    background: color-mix(in srgb, var(--bg) 82%, transparent);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--rule-soft);
+  }
+  .nav-inner {
+    max-width: 880px; margin: 0 auto; padding: 14px 28px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .nav-name {
+    font-family: "Fraunces", serif;
+    font-weight: 600; font-size: 1.05rem;
+    text-decoration: none; color: var(--ink);
+    letter-spacing: .01em;
+  }
+  .nav-links { display: flex; align-items: center; gap: 22px; }
+  .nav-links a {
+    font-size: .82rem; font-weight: 500;
+    letter-spacing: .06em; text-transform: uppercase;
+    color: var(--ink-soft); text-decoration: none;
+    transition: color .2s ease;
+  }
+  .nav-links a:hover { color: var(--accent); }
+  #theme-toggle {
+    background: none; border: 1px solid var(--rule);
+    border-radius: 999px; width: 34px; height: 34px;
+    cursor: pointer; color: var(--ink-soft);
+    display: grid; place-items: center;
+    transition: border-color .2s ease, color .2s ease;
+    font-size: 15px; line-height: 1;
+  }
+  #theme-toggle:hover { border-color: var(--accent); color: var(--accent); }
+  @media (max-width: 620px) { .nav-links a { display: none; } }
+
+  /* ---------- Hero ---------- */
+  header.hero {
+    padding: 92px 0 64px;
+    position: relative;
+    overflow: hidden;
+  }
+  .ipa {
+    font-family: "JetBrains Mono", monospace;
+    font-size: .92rem;
+    color: var(--accent);
+    letter-spacing: .04em;
+    margin-bottom: 18px;
+  }
+  h1 {
+    font-family: "Fraunces", serif;
+    font-optical-sizing: auto;
+    font-weight: 560;
+    font-size: clamp(3rem, 8.5vw, 5.2rem);
+    line-height: 1.02;
+    letter-spacing: -0.015em;
+    margin-bottom: 26px;
+  }
+  .hero-tagline {
+    font-family: "Fraunces", serif;
+    font-style: italic;
+    font-weight: 400;
+    font-size: clamp(1.15rem, 2.6vw, 1.45rem);
+    color: var(--ink-soft);
+    max-width: 34em;
+    line-height: 1.5;
+    margin-bottom: 34px;
+  }
+  .hero-tagline em { font-style: normal; color: var(--accent); }
+  .hero-meta {
+    display: flex; flex-wrap: wrap; gap: 10px 26px;
+    font-size: .9rem; color: var(--ink-soft);
+    align-items: center;
+  }
+  .hero-meta a {
+    color: var(--ink-soft); text-decoration: none;
+    border-bottom: 1px solid var(--rule);
+    transition: color .2s ease, border-color .2s ease;
+    padding-bottom: 1px;
+  }
+  .hero-meta a:hover { color: var(--accent); border-color: var(--accent); }
+  .hero-meta .dot { color: var(--ink-faint); }
+
+  /* waveform */
+  .wave-band { margin-top: 56px; opacity: .85; }
+  .wave-band svg { display: block; width: 100%; height: 64px; }
+
+  /* ---------- Sections ---------- */
+  section { padding: 58px 0; border-top: 1px solid var(--rule-soft); scroll-margin-top: 64px; }
+  .sec-label {
+    font-size: .78rem; font-weight: 600;
+    letter-spacing: .18em; text-transform: uppercase;
+    color: var(--accent);
+    display: flex; align-items: center; gap: 14px;
+    margin-bottom: 30px;
+  }
+  .sec-label::after { content: ""; height: 1px; flex: 0 0 48px; background: var(--accent); opacity: .45; }
+  .sec-num { font-family: "JetBrains Mono", monospace; color: var(--ink-faint); font-weight: 400; }
+
+  /* ---------- About ---------- */
+  .about-text {
+    font-family: "Fraunces", serif;
+    font-weight: 420;
+    font-size: clamp(1.2rem, 2.4vw, 1.45rem);
+    line-height: 1.6;
+    max-width: 32em;
+    color: var(--ink);
+  }
+  .about-text + .about-text { margin-top: 1.1em; }
+  .about-text strong { font-weight: 600; color: var(--accent); }
+
+  /* ---------- Experience ---------- */
+  .job { position: relative; padding-left: 34px; }
+  .job + .job { margin-top: 52px; }
+  .job::before {
+    content: "";
+    position: absolute; left: 0; top: 10px; bottom: -52px;
+    width: 1px; background: var(--rule);
+  }
+  .job:last-child::before { bottom: 0; }
+  .job::after {
+    content: "";
+    position: absolute; left: -4.5px; top: 8px;
+    width: 10px; height: 10px; border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 0 4px var(--bg);
+  }
+  .job-head { margin-bottom: 6px; }
+  .job-title {
+    font-family: "Fraunces", serif;
+    font-weight: 600; font-size: 1.45rem;
+    letter-spacing: -.01em;
+  }
+  .job-org { color: var(--ink-soft); font-size: .95rem; margin-top: 2px; }
+  .job-dates {
+    font-family: "JetBrains Mono", monospace;
+    font-size: .8rem; color: var(--accent);
+    margin-top: 4px; letter-spacing: .03em;
+  }
+  .job ul { list-style: none; margin-top: 18px; }
+  .job li {
+    position: relative; padding-left: 22px;
+    color: var(--ink-soft); font-size: .96rem;
+    margin-bottom: 12px; max-width: 46em;
+  }
+  .job li::before {
+    content: "—";
+    position: absolute; left: 0;
+    color: var(--accent-soft);
+  }
+  .job li strong { color: var(--ink); font-weight: 600; }
+
+  .pub-note {
+    margin-top: 44px;
+    padding: 20px 24px;
+    background: var(--bg-raised);
+    border: 1px solid var(--rule-soft);
+    border-left: 3px solid var(--accent);
+    border-radius: 6px;
+    box-shadow: var(--shadow);
+    font-size: .93rem; color: var(--ink-soft);
+    max-width: 46em;
+  }
+  .pub-note .pub-tag {
+    font-family: "JetBrains Mono", monospace;
+    font-size: .72rem; letter-spacing: .12em; text-transform: uppercase;
+    color: var(--accent); display: block; margin-bottom: 6px;
+  }
+
+  /* ---------- Skills ---------- */
+  .skills-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 22px;
+  }
+  @media (max-width: 680px) { .skills-grid { grid-template-columns: 1fr; } }
+  .skill-card {
+    background: var(--bg-raised);
+    border: 1px solid var(--rule-soft);
+    border-radius: 10px;
+    padding: 26px 26px 22px;
+    box-shadow: var(--shadow);
+    transition: transform .25s ease, border-color .25s ease;
+  }
+  .skill-card:hover { transform: translateY(-3px); border-color: var(--accent-soft); }
+  @media (prefers-reduced-motion: reduce) { .skill-card:hover { transform: none; } }
+  .skill-card h3 {
+    font-family: "Fraunces", serif;
+    font-weight: 600; font-size: 1.08rem;
+    margin-bottom: 14px;
+    display: flex; align-items: baseline; gap: 10px;
+  }
+  .skill-card h3 .glyph {
+    font-family: "JetBrains Mono", monospace;
+    font-size: .95rem; color: var(--accent); font-weight: 400;
+  }
+  .chips { display: flex; flex-wrap: wrap; gap: 7px; }
+  .chip {
+    font-size: .78rem; font-weight: 500;
+    background: var(--chip-bg); color: var(--ink-soft);
+    padding: 4px 11px; border-radius: 999px;
+    border: 1px solid transparent;
+    transition: border-color .2s ease, color .2s ease;
+  }
+  .chip:hover { border-color: var(--accent-soft); color: var(--ink); }
+
+  /* ---------- Education ---------- */
+  .edu {
+    display: flex; gap: 28px; align-items: flex-start; flex-wrap: wrap;
+  }
+  .edu-year {
+    font-family: "Fraunces", serif;
+    font-weight: 560; font-size: 2.6rem;
+    color: var(--accent); line-height: 1;
+    min-width: 110px;
+  }
+  .edu-body { flex: 1; min-width: 260px; }
+  .edu-degree {
+    font-family: "Fraunces", serif;
+    font-weight: 600; font-size: 1.35rem;
+  }
+  .edu-school { color: var(--ink-soft); margin-top: 2px; }
+  .edu-thesis {
+    margin-top: 14px; font-size: .94rem; color: var(--ink-soft);
+    font-style: italic; max-width: 40em;
+  }
+  .edu-thesis .label {
+    font-style: normal;
+    font-family: "JetBrains Mono", monospace;
+    font-size: .72rem; letter-spacing: .12em; text-transform: uppercase;
+    color: var(--accent); display: block; margin-bottom: 4px;
+  }
+  .edu-courses { margin-top: 14px; font-size: .88rem; color: var(--ink-faint); max-width: 42em; }
+
+  /* ---------- Contact / footer ---------- */
+  section.contact { text-align: left; }
+  .contact-big {
+    font-family: "Fraunces", serif;
+    font-weight: 520;
+    font-size: clamp(1.8rem, 4.5vw, 2.7rem);
+    line-height: 1.25;
+    max-width: 22em;
+    margin-bottom: 30px;
+    letter-spacing: -.01em;
+  }
+  .contact-big a {
+    color: var(--accent); text-decoration: none;
+    border-bottom: 2px solid color-mix(in srgb, var(--accent) 35%, transparent);
+    transition: border-color .2s ease;
+  }
+  .contact-big a:hover { border-color: var(--accent); }
+  .contact-links { display: flex; flex-wrap: wrap; gap: 12px; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-size: .88rem; font-weight: 500;
+    padding: 10px 20px; border-radius: 999px;
+    text-decoration: none;
+    border: 1px solid var(--rule);
+    color: var(--ink); background: var(--bg-raised);
+    transition: border-color .2s ease, color .2s ease, background .2s ease;
+  }
+  .btn:hover { border-color: var(--accent); color: var(--accent); }
+  .btn.primary {
+    background: var(--accent); color: var(--bg); border-color: var(--accent);
+  }
+  .btn.primary:hover { background: var(--accent-soft); border-color: var(--accent-soft); color: var(--bg); }
+
+  footer {
+    border-top: 1px solid var(--rule-soft);
+    padding: 28px 0 40px;
+    font-size: .8rem; color: var(--ink-faint);
+    display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px;
+  }
+  footer .mono { font-family: "JetBrains Mono", monospace; }
+
+  /* ---------- Reveal animation ---------- */
+  .reveal { opacity: 0; transform: translateY(18px); transition: opacity .7s ease, transform .7s ease; }
+  .reveal.in { opacity: 1; transform: none; }
+  @media (prefers-reduced-motion: reduce) {
+    .reveal { opacity: 1; transform: none; transition: none; }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-inner">
+    <a class="nav-name" href="#top">Simon Rosen</a>
+    <div class="nav-links">
+      <a href="#about">About</a>
+      <a href="#experience">Experience</a>
+      <a href="#skills">Skills</a>
+      <a href="#education">Education</a>
+      <a href="#contact">Contact</a>
+      <button id="theme-toggle" aria-label="Toggle dark mode">◐</button>
+    </div>
+  </div>
+</nav>
+
+<header class="hero wrap" id="top">
+  <div class="ipa">/ˈsaɪ.mən ˈɹoʊ.zən/ · n. — linguist, evaluator of machines that speak</div>
+  <h1>Simon Rosen</h1>
+  <p class="hero-tagline">Senior ML Data Linguist building the <em>evaluation architecture</em> behind conversational AI — rubrics, LLM-as-judge pipelines, and the science of how a synthetic voice should sound.</p>
+  <div class="hero-meta">
+    <span>Baltimore, MD</span>
+    <span class="dot">·</span>
+    <a href="mailto:simon.rosen17@gmail.com">simon.rosen17@gmail.com</a>
+    <span class="dot">·</span>
+    <a href="https://www.linkedin.com/in/simonrosen/" target="_blank" rel="noopener">linkedin.com/in/simonrosen</a>
+  </div>
+  <div class="wave-band" aria-hidden="true">
+    <svg id="waveform" viewBox="0 0 1000 64" preserveAspectRatio="none"></svg>
+  </div>
+</header>
+
+<main>
+  <section id="about" class="wrap">
+    <div class="sec-label reveal"><span class="sec-num">01</span> About</div>
+    <p class="about-text reveal">I work at the boundary between <strong>language</strong> and <strong>machine learning</strong> — designing the prompt architectures, judge pipelines, and behavioral policies that determine whether voice and text AI agents actually work.</p>
+    <p class="about-text reveal">Trained as a formal linguist, I decompose fuzzy notions like “naturalness” and “helpfulness” into scorable dimensions, then build the human-calibration and measurement pipelines that hold models to them.</p>
+  </section>
+
+  <section id="experience" class="wrap">
+    <div class="sec-label reveal"><span class="sec-num">02</span> Experience</div>
+
+    <div class="job reveal">
+      <div class="job-head">
+        <div class="job-title">Senior ML Data Linguist</div>
+        <div class="job-org">ServiceNow — CLAE (Comprehensive LLM Analysis &amp; Evaluation) Team · Santa Clara, CA</div>
+        <div class="job-dates">Feb 2026 — Present</div>
+      </div>
+      <ul>
+        <li>Sole linguist on a team of computer scientists; architected a framework decomposing synthetic speech quality into three scorable dimensions — <strong>Segmental</strong> (sound accuracy), <strong>Prosodic</strong> (rhythm, stress, intonation), and <strong>Paralinguistic</strong> (emotional tone, speaking style) — with Python pipelines using Montreal Forced Aligner to automate objective scoring against linguistic targets.</li>
+        <li>Lead linguistic evaluation for the <strong>Voice Experience Index (VEI)</strong>, a rating framework for AI voice agent conversations spanning speech fluency, text fluency, tool-calling, task completion, and helpfulness; author annotation guidelines, calibrate labelers, and adjudicate edge cases.</li>
+        <li>Statistically benchmark <strong>LLM-as-judge</strong> performance against human labels — measuring accuracy, bias, and agreement with ground truth — then iterate on judge prompts and rubrics for scalable model assessment.</li>
+        <li>Author <strong>behavioral policies</strong> defining what AI agents can and cannot do across tool use, response generation, and task execution.</li>
+        <li>Co-lead internal LLM agent evaluation standards across the CLAE team, defining rubric and scoring criteria for multi-turn agentic workflows in voice and text.</li>
+      </ul>
+    </div>
+
+    <div class="job reveal">
+      <div class="job-head">
+        <div class="job-title">ML Data Linguist</div>
+        <div class="job-org">ServiceNow — CLAE Team · Santa Clara, CA</div>
+        <div class="job-dates">Jan 2023 — Feb 2026</div>
+      </div>
+      <ul>
+        <li>Authored LLM-as-judge prompts and structured output schemas integrated into internal evaluation tooling; wrote a <strong>prompt design guide</strong> adopted as a team-wide reference and led training sessions enabling product teams to build their own evaluations.</li>
+        <li>Led annotation review for <strong>Text2Flow</strong>, an LLM converting natural language to YAML agentic workflows; maintained labeling standards covering compositional intent, edge cases, and underspecified instructions.</li>
+        <li>Built a <strong>ground-truth benchmark</strong> through paired human–model evaluation; validated labels against LLM-as-judge and automatic metrics to surface scoring discrepancies.</li>
+        <li>Cataloged systematic failure patterns — hallucination, under-specification, intent misclassification — and partnered with ML engineers on prompt refinement, retraining, and production model selection.</li>
+      </ul>
+    </div>
+
+    <div class="pub-note reveal">
+      <span class="pub-tag">In progress</span>
+      Co-authoring a peer-reviewed paper on a TTS evaluation methodology integrated into ServiceNow’s production voice quality index.
+    </div>
+  </section>
+
+  <section id="skills" class="wrap">
+    <div class="sec-label reveal"><span class="sec-num">03</span> Skills</div>
+    <div class="skills-grid">
+      <div class="skill-card reveal">
+        <h3><span class="glyph">⊢</span> Prompt &amp; Evaluation Engineering</h3>
+        <div class="chips">
+          <span class="chip">System Prompts</span>
+          <span class="chip">LLM-as-Judge Architecture</span>
+          <span class="chip">Structured Output Schemas</span>
+          <span class="chip">Behavioral Eval Development</span>
+          <span class="chip">Regression Detection</span>
+          <span class="chip">Ground-Truth Benchmarking</span>
+          <span class="chip">Model Comparison</span>
+        </div>
+      </div>
+      <div class="skill-card reveal">
+        <h3><span class="glyph">ʃ</span> NLP &amp; Linguistics</h3>
+        <div class="chips">
+          <span class="chip">Formal Phonology &amp; Prosody</span>
+          <span class="chip">Segmental / Suprasegmental Analysis</span>
+          <span class="chip">TTS / ASR Evaluation</span>
+          <span class="chip">Pragmatics &amp; Discourse</span>
+          <span class="chip">Montreal Forced Aligner</span>
+        </div>
+      </div>
+      <div class="skill-card reveal">
+        <h3><span class="glyph">{}</span> Technical</h3>
+        <div class="chips">
+          <span class="chip">Python</span>
+          <span class="chip">YAML</span>
+          <span class="chip">Git</span>
+          <span class="chip">JSON Schema Design</span>
+          <span class="chip">Evaluation Pipelines</span>
+          <span class="chip">Agent Behavioral Policies</span>
+        </div>
+      </div>
+      <div class="skill-card reveal">
+        <h3><span class="glyph">⇄</span> Operations &amp; Collaboration</h3>
+        <div class="chips">
+          <span class="chip">Annotation Rubric Design</span>
+          <span class="chip">Reviewer Calibration</span>
+          <span class="chip">Edge Case Adjudication</span>
+          <span class="chip">Cross-Functional ML Partnership</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="education" class="wrap">
+    <div class="sec-label reveal"><span class="sec-num">04</span> Education</div>
+    <div class="edu reveal">
+      <div class="edu-year">2022</div>
+      <div class="edu-body">
+        <div class="edu-degree">B.A. in Linguistics</div>
+        <div class="edu-school">Princeton University · Focus: Theoretical &amp; Computational Linguistics</div>
+        <div class="edu-thesis">
+          <span class="label">Thesis</span>
+          Tone Sandhi and Constituency in Classifier Phrases Across Sinitic Languages
+        </div>
+        <div class="edu-courses">Phonetics &amp; Phonology · Syntax · Semantics · Pragmatics · Java Programming · Data Structures &amp; Algorithms</div>
+      </div>
+    </div>
+  </section>
+
+  <section id="contact" class="wrap contact">
+    <div class="sec-label reveal"><span class="sec-num">05</span> Contact</div>
+    <p class="contact-big reveal">Working on conversational AI evaluation, speech quality, or agent benchmarking? <a href="mailto:simon.rosen17@gmail.com">Let’s talk.</a></p>
+    <div class="contact-links reveal">
+      <a class="btn primary" href="mailto:simon.rosen17@gmail.com">Email me</a>
+      <a class="btn" href="https://www.linkedin.com/in/simonrosen/" target="_blank" rel="noopener">LinkedIn</a>
+    </div>
+  </section>
+</main>
+
+<footer class="wrap">
+  <span>© 2026 Simon Rosen</span>
+  <span class="mono">[ +ATR, −dashboard, +editorial ]</span>
+</footer>
+
+<script>
+(function () {
+  // ---------- Theme ----------
+  var root = document.documentElement;
+  var stored = null;
+  try { stored = localStorage.getItem('theme'); } catch (e) {}
+  var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  if (stored === 'dark' || (!stored && prefersDark)) root.setAttribute('data-theme', 'dark');
+  document.getElementById('theme-toggle').addEventListener('click', function () {
+    var dark = root.getAttribute('data-theme') === 'dark';
+    if (dark) root.removeAttribute('data-theme');
+    else root.setAttribute('data-theme', 'dark');
+    try { localStorage.setItem('theme', dark ? 'light' : 'dark'); } catch (e) {}
+  });
+
+  // ---------- Scroll reveal ----------
+  var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var items = document.querySelectorAll('.reveal');
+  if (reduced || !('IntersectionObserver' in window)) {
+    items.forEach(function (el) { el.classList.add('in'); });
+  } else {
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) {
+        if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); }
+      });
+    }, { threshold: 0.12 });
+    items.forEach(function (el) { io.observe(el); });
+  }
+
+  // ---------- Waveform (delta-time animated, prosody motif) ----------
+  var svg = document.getElementById('waveform');
+  var W = 1000, H = 64, MID = H / 2;
+  var N = 90;
+  var bars = [];
+  var css = getComputedStyle(document.body);
+  for (var i = 0; i < N; i++) {
+    var r = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+    var x = (i + 0.5) * (W / N);
+    r.setAttribute('x', x - 1.6);
+    r.setAttribute('width', 3.2);
+    r.setAttribute('rx', 1.6);
+    svg.appendChild(r);
+    bars.push({ el: r, x: x, phase: Math.random() * Math.PI * 2 });
+  }
+  function envelope(t) {
+    // intonation-contour-like envelope across the band
+    return 0.35 + 0.65 * Math.pow(Math.sin(Math.PI * t), 1.2);
+  }
+  function paint(time) {
+    var color = getComputedStyle(document.body).getPropertyValue('--wave');
+    for (var i = 0; i < N; i++) {
+      var b = bars[i];
+      var t = i / (N - 1);
+      var amp = envelope(t) * (MID - 4);
+      var h = Math.max(2, Math.abs(
+        Math.sin(time * 0.0011 + b.phase) * 0.6 +
+        Math.sin(time * 0.0004 + t * 9) * 0.4
+      ) * amp);
+      b.el.setAttribute('y', MID - h);
+      b.el.setAttribute('height', h * 2);
+      b.el.setAttribute('fill', color);
+      b.el.setAttribute('opacity', 0.22 + 0.5 * (h / MID));
+    }
+  }
+  if (reduced) {
+    paint(1234); // static frame
+  } else {
+    var last = performance.now();
+    function frame(now) {
+      // delta-time based: identical speed at any refresh rate
+      last = now;
+      paint(now);
+      requestAnimationFrame(frame);
+    }
+    requestAnimationFrame(frame);
+  }
+})();
+</script>
+</body>
+</html>
