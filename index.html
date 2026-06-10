@@ -180,7 +180,11 @@
     font-family: "IBM Plex Mono", monospace;
     font-size: .66rem; color: var(--ink-soft);
     transition: background-color .15s ease;
+    cursor: pointer;
   }
+  .tier .iv:hover { background: color-mix(in srgb, var(--rust) 8%, transparent); }
+  .praat:focus { outline: none; }
+  .praat:focus-visible { outline: 2px solid var(--ember); outline-offset: 3px; }
   .tier .iv.on {
     background: color-mix(in srgb, var(--rust) 16%, transparent);
     color: var(--ink);
@@ -432,7 +436,7 @@
     <span class="dot">·</span>
     <a href="https://www.linkedin.com/in/simonrosen/" target="_blank" rel="noopener">linkedin.com/in/simonrosen</a>
   </div>
-  <figure class="praat rise d4">
+  <figure class="praat rise d4" tabindex="0" aria-label="Voice sample player — space to play or pause">
     <div class="praat-head">
       <button id="play-btn" aria-label="Play voice sample">▶</button>
       <span class="praat-title">Voice sample <span class="praat-sub">— synthesized · 0:09</span></span>
@@ -631,6 +635,7 @@
     var cursor = document.getElementById('praat-cursor');
     var body = document.getElementById('praat-body');
     var inner = document.getElementById('praat-inner');
+    var fig = document.querySelector('.praat');
     var timeEl = document.getElementById('praat-time');
     var dur = D.duration;
     var ctx = canvas.getContext('2d');
@@ -645,7 +650,7 @@
     var tierIpa = document.getElementById('tier-ipa');
     var tierWord = document.getElementById('tier-word');
     var ivs = [];
-    D.words.forEach(function (w) {
+    D.words.forEach(function (w, idx) {
       var l = (w.t0 / dur * 100) + '%', wd = ((w.t1 - w.t0) / dur * 100) + '%';
       var a = document.createElement('span');
       a.className = 'iv'; a.style.left = l; a.style.width = wd; a.textContent = w.ipa;
@@ -653,6 +658,9 @@
       var b = document.createElement('span');
       b.className = 'iv'; b.style.left = l; b.style.width = wd; b.textContent = w.w;
       tierWord.appendChild(b);
+      [a, b].forEach(function (el) {
+        el.addEventListener('click', function (e) { e.stopPropagation(); playSpan(idx); });
+      });
       ivs.push({ t0: w.t0, t1: w.t1, els: [a, b] });
     });
 
@@ -802,9 +810,17 @@
       var playing = !audio.paused && !audio.ended;
       if (playing) {
         var t = playbackPos(now);
-        setCursor(t); highlight(t);
-        // keep the playhead centered; cached widths so this loop does no layout reads
-        body.scrollLeft = t / dur * cachedInnerW - cachedBodyW * 0.5;
+        if (stopAt !== null && t >= stopAt) {
+          // segment finished: stop and pin the cursor exactly on the boundary
+          audio.pause();
+          setCursor(stopAt); highlight(stopAt - 0.005);
+          stopAt = null;
+        } else {
+          if (stopAt !== null) t = Math.min(t, stopAt);
+          setCursor(t); highlight(t);
+          // keep the playhead centered; cached widths so this loop does no layout reads
+          body.scrollLeft = t / dur * cachedInnerW - cachedBodyW * 0.5;
+        }
       }
       if (wipe < 1 || playing) requestAnimationFrame(loop);
       else { running = false; lastT = null; }
@@ -813,8 +829,33 @@
       if (!running) { running = true; lastT = null; requestAnimationFrame(loop); }
     }
 
-    btn.addEventListener('click', function () {
-      if (audio.paused || audio.ended) { audio.play(); } else { audio.pause(); }
+    var stopAt = null;
+    function playSpan(idx) {
+      var w = D.words[idx];
+      var begin = function () {
+        try { audio.currentTime = w.t0; } catch (err) {}
+        stopAt = w.t1;
+        lastMediaT = -1; lastShown = w.t0;
+        setCursor(w.t0); highlight(w.t0 + 0.005);
+        audio.play();
+      };
+      // seeking before metadata arrives is silently ignored — wait for it
+      if (audio.readyState >= 1) begin();
+      else {
+        audio.addEventListener('loadedmetadata', begin, { once: true });
+        audio.load();
+      }
+    }
+    function togglePlay() {
+      if (audio.paused || audio.ended) { stopAt = null; audio.play(); }
+      else { audio.pause(); }
+    }
+    btn.addEventListener('click', togglePlay);
+    fig.addEventListener('keydown', function (e) {
+      if (e.code === 'Space') {
+        e.preventDefault(); // also suppresses page scroll and double-toggle via the button
+        if (!e.repeat) togglePlay();
+      }
     });
     audio.addEventListener('play', function () {
       btn.textContent = '❙❙'; btn.setAttribute('aria-label', 'Pause voice sample');
@@ -833,6 +874,7 @@
       var rect = inner.getBoundingClientRect();
       var t = Math.max(0, Math.min(dur - 0.05, (e.clientX - rect.left) / rect.width * dur));
       try { audio.currentTime = t; } catch (err) {}
+      stopAt = null;
       lastMediaT = -1; lastShown = t;
       setCursor(t); highlight(t);
     });
