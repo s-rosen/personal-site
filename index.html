@@ -101,17 +101,7 @@
   @media (max-width: 680px) { .nav-links a { display: none; } }
 
   /* ---------- Hero ---------- */
-  header.hero { padding: 104px 0 70px; }
-  .hero-meta-top {
-    font-family: "IBM Plex Mono", monospace;
-    font-size: .72rem; letter-spacing: .18em; text-transform: uppercase;
-    color: var(--ink-faint);
-    display: flex; gap: 14px; align-items: center;
-    margin-bottom: 44px;
-  }
-  .hero-meta-top::after { content: ""; height: 1px; flex: 1; background: var(--rule); }
-  .hero-meta-top .no { color: var(--rust); }
-
+  header.hero { padding: 110px 0 70px; }
   .gloss-name {
     font-family: "Fraunces", serif;
     font-weight: 580; letter-spacing: -.02em;
@@ -126,15 +116,8 @@
     letter-spacing: .06em; color: var(--rust);
     margin-bottom: 10px;
   }
-  .lemma {
-    margin-top: 30px;
-    font-size: clamp(1.15rem, 2.6vw, 1.5rem);
-    color: var(--ink-soft);
-    max-width: 36em;
-  }
-  .lemma .pos { font-style: italic; color: var(--rust); }
   .hero-tagline {
-    margin-top: 20px;
+    margin-top: 32px;
     font-size: clamp(1.05rem, 2.2vw, 1.3rem);
     font-style: italic; color: var(--ink-soft);
     max-width: 33em; line-height: 1.55;
@@ -159,18 +142,11 @@
 
   .wave-fig { margin-top: 64px; }
   .wave-fig svg { display: block; width: 100%; height: 70px; }
-  .wave-cap {
-    font-family: "IBM Plex Mono", monospace;
-    font-size: .7rem; letter-spacing: .08em;
-    color: var(--ink-faint); margin-top: 10px;
-  }
-  .wave-cap i { color: var(--rust); font-style: normal; }
 
   /* hero load stagger */
   .rise { opacity: 0; transform: translateY(22px); animation: rise .85s cubic-bezier(.2,.7,.2,1) forwards; }
-  .rise.d1 { animation-delay: .05s; } .rise.d2 { animation-delay: .15s; }
-  .rise.d3 { animation-delay: .25s; } .rise.d4 { animation-delay: .35s; }
-  .rise.d5 { animation-delay: .45s; } .rise.d6 { animation-delay: .6s; }
+  .rise.d1 { animation-delay: .05s; } .rise.d2 { animation-delay: .18s; }
+  .rise.d3 { animation-delay: .3s; } .rise.d4 { animation-delay: .45s; }
   @keyframes rise { to { opacity: 1; transform: none; } }
   @media (prefers-reduced-motion: reduce) {
     .rise { animation: none; opacity: 1; transform: none; }
@@ -360,8 +336,6 @@
     font-size: .72rem; letter-spacing: .04em; color: var(--ink-faint);
     display: flex; justify-content: space-between; flex-wrap: wrap; gap: 10px;
   }
-  footer .feat { color: var(--rust); }
-
   /* ---------- Scroll reveal ---------- */
   .reveal { opacity: 0; transform: translateY(18px); transition: opacity .7s ease, transform .7s ease; }
   .reveal.in { opacity: 1; transform: none; }
@@ -388,28 +362,27 @@
 </nav>
 
 <header class="hero wrap" id="top">
-  <div class="hero-meta-top rise d1"><span class="no">№ 17</span><span>Field notes — Baltimore, MD</span></div>
-  <h1 class="gloss-name rise d2">
+  <h1 class="gloss-name rise d1">
     <span class="gw"><span class="ipa-g">/ˈsaɪ.mən/</span>Simon</span>
     <span class="gw"><span class="ipa-g">/ˈɹoʊ.zən/</span>Rosen</span>
   </h1>
-  <p class="lemma rise d3"><span class="pos">n.</span> — linguist; evaluator of machines that speak.</p>
-  <p class="hero-tagline rise d4">Senior ML Data Linguist building the <em>evaluation architecture</em> behind conversational AI — rubrics, LLM-as-judge pipelines, and the science of how a synthetic voice should sound.</p>
-  <div class="hero-links rise d5">
+  <p class="hero-tagline rise d2">Senior ML Data Linguist building the <em>evaluation architecture</em> behind conversational AI — rubrics, LLM-as-judge pipelines, and the science of how a synthetic voice should sound.</p>
+  <div class="hero-links rise d3">
+    <span>Baltimore, MD</span>
+    <span class="dot">·</span>
     <a href="mailto:simon.rosen17@gmail.com">simon.rosen17@gmail.com</a>
     <span class="dot">·</span>
     <a href="https://www.linkedin.com/in/simonrosen/" target="_blank" rel="noopener">linkedin.com/in/simonrosen</a>
   </div>
-  <div class="wave-fig rise d6" aria-hidden="true">
+  <div class="wave-fig rise d4" aria-hidden="true">
     <svg id="waveform" viewBox="0 0 1000 70" preserveAspectRatio="none"></svg>
-    <div class="wave-cap">fig. 1 — fundamental frequency, synthetic speech <i>(animated)</i></div>
   </div>
 </header>
 
 <main>
   <section id="about">
     <div class="sec-grid wrap">
-      <aside class="sec-aside reveal"><span class="sec-no">§1</span><span class="sec-name">About</span></aside>
+      <aside class="sec-aside reveal"><span class="sec-no">01</span><span class="sec-name">About</span></aside>
       <div class="sec-body">
         <p class="about-text reveal">I work at the boundary between <strong>language</strong> and <strong>machine learning</strong> — designing the prompt architectures, judge pipelines, and behavioral policies that determine whether voice and text AI agents actually work.</p>
         <p class="about-text reveal">Trained as a formal linguist, I decompose fuzzy notions like “naturalness” and “helpfulness” into scorable dimensions, then build the human-calibration and measurement pipelines that hold models to them.</p>
@@ -419,7 +392,7 @@
 
   <section id="experience">
     <div class="sec-grid wrap">
-      <aside class="sec-aside reveal"><span class="sec-no">§2</span><span class="sec-name">Experience</span></aside>
+      <aside class="sec-aside reveal"><span class="sec-no">02</span><span class="sec-name">Experience</span></aside>
       <div class="sec-body">
 
         <div class="job reveal">
@@ -448,7 +421,7 @@
         </div>
 
         <div class="pub-note reveal">
-          <span class="pub-tag">N.B. — in progress</span>
+          <span class="pub-tag">In progress</span>
           Co-authoring a peer-reviewed paper on a TTS evaluation methodology integrated into ServiceNow’s production voice quality index.
         </div>
 
@@ -458,7 +431,7 @@
 
   <section id="skills">
     <div class="sec-grid wrap">
-      <aside class="sec-aside reveal"><span class="sec-no">§3</span><span class="sec-name">Skills</span></aside>
+      <aside class="sec-aside reveal"><span class="sec-no">03</span><span class="sec-name">Skills</span></aside>
       <div class="sec-body">
         <div class="bundles">
           <div class="bundle reveal">
@@ -510,7 +483,7 @@
 
   <section id="education">
     <div class="sec-grid wrap">
-      <aside class="sec-aside reveal"><span class="sec-no">§4</span><span class="sec-name">Education</span></aside>
+      <aside class="sec-aside reveal"><span class="sec-no">04</span><span class="sec-name">Education</span></aside>
       <div class="sec-body">
         <div class="edu reveal">
           <div class="edu-year">2022</div>
@@ -530,7 +503,7 @@
 
   <section id="contact">
     <div class="sec-grid wrap">
-      <aside class="sec-aside reveal"><span class="sec-no">§5</span><span class="sec-name">Contact</span></aside>
+      <aside class="sec-aside reveal"><span class="sec-no">05</span><span class="sec-name">Contact</span></aside>
       <div class="sec-body">
         <p class="contact-big reveal">Working on conversational AI evaluation, speech quality, or agent benchmarking? <a href="mailto:simon.rosen17@gmail.com">Let’s talk.</a></p>
         <div class="contact-links reveal">
@@ -544,8 +517,7 @@
 
 <footer class="wrap">
   <span>© 2026 Simon Rosen</span>
-  <span class="feat">[ +ATR −dashboard +editorial ]</span>
-  <span>set in Fraunces &amp; Newsreader</span>
+  <span>Baltimore, MD</span>
 </footer>
 
 <script>
