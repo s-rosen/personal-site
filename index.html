@@ -1047,7 +1047,11 @@
     }
     function togglePlay() {
       if (pIsPlaying()) { pPause(); }
-      else {
+      else if (selSpan) {
+        // an active drag-selection owns the spacebar: replay just that span
+        setCursor(selSpan[0]); highlight(selSpan[0]);
+        pPlay(selSpan[0], selSpan[1]);
+      } else {
         var from = usingWA
           ? (pausedAt >= dur - 0.01 ? 0 : pausedAt)
           : (audio.ended ? 0 : audio.currentTime);
@@ -1099,7 +1103,7 @@
     });
     body.addEventListener('click', function (e) {
       if (dragEnded) return; // drag-selection handled on mouseup
-      sel.style.display = 'none';
+      sel.style.display = 'none'; selSpan = null;
       var rect = inner.getBoundingClientRect();
       var t = Math.max(0, Math.min(dur - 0.05, (e.clientX - rect.left) / rect.width * dur));
       pausedAt = t;
@@ -1115,7 +1119,7 @@
 
     // drag a span on the figure to select and play it (Praat-style selection)
     var sel = document.getElementById('praat-sel');
-    var dragSel = null, dragEnded = false;
+    var dragSel = null, dragEnded = false, selSpan = null;
     function innerX(e) { return e.clientX - inner.getBoundingClientRect().left; }
     body.addEventListener('mousedown', function (e) {
       if (e.button !== 0) return;
@@ -1143,6 +1147,7 @@
         var tA = dragSel.a / cachedInnerW * dur;
         var tB = dragSel.b / cachedInnerW * dur;
         if (tB - tA > 0.02) {
+          selSpan = [tA, tB];
           setCursor(tA); highlight(tA);
           pPlay(tA, tB);
         }
