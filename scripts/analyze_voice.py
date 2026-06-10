@@ -57,15 +57,19 @@ IPA = [
 # Labels audited against full traces 2026-06-10. F0 onset overshoot after
 # voiceless obstruents (solving /s/, synthetic /th/) treated as segmental
 # perturbation, not pitch accents. Hand-tune labels here; times follow data.
+# Perceptually verified by the speaker 2026-06-10: Rosen ends low (the f0
+# uptick is inaudible/glottalized); "I'm a linguist" carries no accent; the
+# is/IN- bump at ~2.92s is heard as a high onset of IN-; SOLV- is prominent
+# at low pitch; uncanny is heard as high un- falling onto CAN-.
 TOBI = [
     (0,  "L+H*",  "peak"),           # Hi — dip then +3.7st rise, late peak
     (2,  "!H*",   "peak"),           # Simon — downstepped after L+H*
     (3,  "L*",    "low", 0.0, 0.5),  # Rosen — low star on RO-
-    (3,  "L-H%",  "end"),            # continuation rise (94->116) before pause
-    (6,  "H+!H*", 0.15),             # linguist — fall from high on "a" onto LING-
-    (9,  "L*+H",  "low", 0.0, 0.4),  # interested — low IN-, trailing rise to 134
-    (13, "L+H*",  "peak"),           # uncanny — focal rise, peak on /kae/
-    (14, "!H*",   "peak"),           # valley — post-focal downstep
+    (3,  "L-L%",  "end"),            # heard as a low ending (track uptick = artifact)
+    (9,  "H*",    0.05),             # interested — high onset on IN- (bump at word edge)
+    (11, "L*",    "low", 0.0, 0.5),  # solving — SOLV- prominent at low pitch
+    (13, "H+!H*", 0.35),             # uncanny — heard: un- high, star on CAN- slightly lower
+    (14, "!H*",   "peak"),           # valley — downstep continues
     (16, "!H*",   0.62),             # synthetic — terraced ~108 on THET (122 = /th/ overshoot)
     (17, "H*",    "peak"),           # speech — 138 on the vowel, nuclear in IP2
     (17, "L-L%",  "end"),            # phrase-final fall before 647 ms pause
