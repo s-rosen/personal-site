@@ -818,6 +818,8 @@
     // exact sample (the user's boundaries are sample-precise), cursor driven
     // by the hardware audio clock. Fallback (file:// etc.): <audio> element.
     var actx = null, buf = null, src = null, usingWA = false;
+    var waState = 'loading'; // loading | ready | failed
+    var pendingPlay = null;  // a click that arrived before the decoder finished
     var playing = false, startCtx = 0, startOff = 0, segEnd = null, pausedAt = 0;
 
     fetch('assets/voice-intro.wav')
@@ -826,8 +828,17 @@
         actx = new (window.AudioContext || window.webkitAudioContext)();
         return actx.decodeAudioData(ab);
       })
-      .then(function (b) { buf = b; usingWA = true; })
-      .catch(function () { usingWA = false; });
+      .then(function (b) {
+        buf = b; usingWA = true; waState = 'ready';
+        if (pendingPlay) { var p = pendingPlay; pendingPlay = null; pPlay(p.from, p.to); }
+      })
+      .catch(function () {
+        // file:// or network failure: <audio> fallback (segment stops are
+        // only frame-accurate there — serve over http for sample accuracy)
+        usingWA = false; waState = 'failed';
+        if (window.console) console.info('voice player: Web Audio unavailable, using <audio> fallback');
+        if (pendingPlay) { var p = pendingPlay; pendingPlay = null; pPlay(p.from, p.to); }
+      });
 
     function setBtn(on) {
       btn.textContent = on ? '❙❙' : '▶';
@@ -858,9 +869,18 @@
       return mediaPos(now);
     }
     function pIsPlaying() {
+      if (pendingPlay) return true; // queued behind the decoder
       return usingWA ? playing : (!audio.paused && !audio.ended);
     }
     function pPlay(from, to) {
+      if (waState === 'loading') {
+        // don't degrade to the imprecise fallback just because the decoder
+        // hasn't finished — remember the request and honor it when ready
+        pendingPlay = { from: from, to: to };
+        setCursor(from);
+        setBtn(true);
+        return;
+      }
       segEnd = (to != null) ? to : null;
       if (usingWA && buf) {
         if (actx.state === 'suspended') actx.resume();
@@ -903,6 +923,7 @@
       }
     }
     function pPause() {
+      if (pendingPlay) { pendingPlay = null; setBtn(false); return; }
       if (usingWA) { pausedAt = pPos(); segEnd = null; stopSrc(); setBtn(false); }
       else audio.pause();
     }
