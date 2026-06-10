@@ -183,6 +183,18 @@
     cursor: pointer;
   }
   .tier .iv:hover { background: color-mix(in srgb, var(--rust) 8%, transparent); }
+  .tier-pts { border-top: 1px solid var(--rule-soft); }
+  .tier-pts .pt {
+    position: absolute; top: 0; bottom: 0;
+    transform: translateX(-50%);
+    display: flex; flex-direction: column; align-items: center;
+    pointer-events: none;
+  }
+  .tier-pts .pt i { width: 1px; height: 6px; background: var(--ember); }
+  .tier-pts .pt span {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: .6rem; color: var(--rust); line-height: 1.5;
+  }
   .praat:focus { outline: none; }
   .praat:focus-visible { outline: 2px solid var(--ember); outline-offset: 3px; }
   .tier .iv.on {
@@ -445,14 +457,15 @@
     <div class="praat-body" id="praat-body">
       <div class="praat-inner" id="praat-inner">
         <canvas id="spec-canvas"></canvas>
+        <div class="tier tier-pts" id="tier-tobi" aria-hidden="true"></div>
         <div class="tier" id="tier-ipa" aria-hidden="true"></div>
         <div class="tier" id="tier-word" aria-hidden="true"></div>
         <div class="praat-cursor" id="praat-cursor"></div>
       </div>
     </div>
-    <figcaption class="praat-cap">Broadband spectrogram, 0–5 kHz · formants F1–F4 · pitch contour (75–500 Hz) · time-aligned IPA and word tiers · click to seek</figcaption>
+    <figcaption class="praat-cap">Broadband spectrogram, 0–5 kHz · formants F1–F4 · pitch contour (75–500 Hz) · ToBI, IPA, and word tiers · click a word to hear it</figcaption>
   </figure>
-  <audio id="voice-audio" src="assets/voice-intro.m4a" preload="auto"></audio>
+  <audio id="voice-audio" src="assets/voice-intro.m4a" preload="metadata"></audio>
 </header>
 
 <main>
@@ -663,6 +676,17 @@
       });
       ivs.push({ t0: w.t0, t1: w.t1, els: [a, b] });
     });
+    var tierTobi = document.getElementById('tier-tobi');
+    (D.tobi || []).forEach(function (ev) {
+      var p = document.createElement('span');
+      p.className = 'pt';
+      p.style.left = (ev[0] / dur * 100) + '%';
+      var tick = document.createElement('i');
+      var lab = document.createElement('span');
+      lab.textContent = ev[1];
+      p.appendChild(tick); p.appendChild(lab);
+      tierTobi.appendChild(p);
+    });
 
     // zoom level: enough px/s that every tier label fits its interval un-clipped
     var measure = document.createElement('canvas').getContext('2d');
@@ -789,17 +813,118 @@
       }
     }
 
-    // The media clock only updates every ~20 ms; interpolate between updates
-    // with the wall clock so the cursor and autoscroll move at display rate.
+    // ---------- playback engine ----------
+    // Primary: Web Audio on the lossless WAV — segments start AND stop at the
+    // exact sample (the user's boundaries are sample-precise), cursor driven
+    // by the hardware audio clock. Fallback (file:// etc.): <audio> element.
+    var actx = null, buf = null, src = null, usingWA = false;
+    var playing = false, startCtx = 0, startOff = 0, segEnd = null, pausedAt = 0;
+
+    fetch('assets/voice-intro.wav')
+      .then(function (r) { if (!r.ok) throw new Error(r.status); return r.arrayBuffer(); })
+      .then(function (ab) {
+        actx = new (window.AudioContext || window.webkitAudioContext)();
+        return actx.decodeAudioData(ab);
+      })
+      .then(function (b) { buf = b; usingWA = true; })
+      .catch(function () { usingWA = false; });
+
+    function setBtn(on) {
+      btn.textContent = on ? '❙❙' : '▶';
+      btn.setAttribute('aria-label', on ? 'Pause voice sample' : 'Play voice sample');
+    }
+    function stopSrc() {
+      if (src) { src.onended = null; try { src.stop(); } catch (e) {} src = null; }
+      playing = false;
+    }
+
+    // fallback media clock, interpolated to display rate
     var lastMediaT = -1, lastWall = 0, lastShown = 0;
-    function playbackPos(now) {
+    function mediaPos(now) {
       var ct = audio.currentTime;
       if (ct !== lastMediaT) { lastMediaT = ct; lastWall = now; }
       var est = Math.min(dur, ct + (now - lastWall) / 1000);
-      // hold through small resync regressions; accept real jumps (seeks)
       if (est < lastShown && lastShown - est < 0.05) est = lastShown;
       lastShown = est;
       return est;
+    }
+    function pPos(now) {
+      if (usingWA) {
+        if (!playing) return pausedAt;
+        var lat = actx.outputLatency || actx.baseLatency || 0;
+        var p = startOff + (actx.currentTime - startCtx) - lat;
+        return Math.max(startOff, Math.min(p, segEnd !== null ? segEnd : dur));
+      }
+      return mediaPos(now);
+    }
+    function pIsPlaying() {
+      return usingWA ? playing : (!audio.paused && !audio.ended);
+    }
+    function pPlay(from, to) {
+      segEnd = (to != null) ? to : null;
+      if (usingWA && buf) {
+        if (actx.state === 'suspended') actx.resume();
+        stopSrc();
+        var end = (to != null) ? to : dur;
+        if (end - from <= 0.001) return;
+        src = actx.createBufferSource();
+        src.buffer = buf;
+        src.connect(actx.destination);
+        src.start(0, from, end - from); // sample-accurate span
+        startCtx = actx.currentTime; startOff = from;
+        playing = true;
+        setBtn(true);
+        ensureLoop();
+        var mine = src;
+        src.onended = function () {
+          if (src !== mine) return;
+          var endedAt = (segEnd !== null) ? segEnd : dur;
+          playing = false; src = null;
+          setBtn(false);
+          if (segEnd === null) {
+            // full clip finished
+            pausedAt = 0;
+            highlight(-1); cursor.style.opacity = 0; timeEl.textContent = '';
+          } else {
+            // segment finished: pin cursor on the boundary
+            pausedAt = endedAt;
+            setCursor(endedAt); highlight(endedAt - 0.005);
+          }
+          segEnd = null;
+        };
+      } else {
+        var begin = function () {
+          try { audio.currentTime = from; } catch (err) {}
+          lastMediaT = -1; lastShown = from;
+          audio.play();
+        };
+        if (audio.readyState >= 1) begin();
+        else { audio.addEventListener('loadedmetadata', begin, { once: true }); audio.load(); }
+      }
+    }
+    function pPause() {
+      if (usingWA) { pausedAt = pPos(); segEnd = null; stopSrc(); setBtn(false); }
+      else audio.pause();
+    }
+
+    function playSpan(idx) {
+      var w = D.words[idx];
+      // bring the segment into view once; playback itself never scrolls
+      var x0 = w.t0 / dur * cachedInnerW, x1 = w.t1 / dur * cachedInnerW;
+      if (x0 < body.scrollLeft + 4 || x1 > body.scrollLeft + cachedBodyW - 4) {
+        body.scrollLeft = (x0 + x1) / 2 - cachedBodyW * 0.5;
+      }
+      setCursor(w.t0); highlight(w.t0 + 0.005);
+      pPlay(w.t0, w.t1);
+    }
+    function togglePlay() {
+      if (pIsPlaying()) { pPause(); }
+      else {
+        var from = usingWA
+          ? (pausedAt >= dur - 0.01 ? 0 : pausedAt)
+          : (audio.ended ? 0 : audio.currentTime);
+        pPlay(from);
+      }
     }
 
     var running = false, lastT = null;
@@ -807,49 +932,30 @@
       if (lastT === null) lastT = now;
       var dt = now - lastT; lastT = now;
       if (wipe < 1) { wipe = Math.min(1, wipe + dt / 1100); draw(); }
-      var playing = !audio.paused && !audio.ended;
-      if (playing) {
-        var t = playbackPos(now);
-        if (stopAt !== null && t >= stopAt) {
-          // segment finished: stop and pin the cursor exactly on the boundary
+      var isPlaying = pIsPlaying();
+      if (isPlaying) {
+        var t = pPos(now);
+        if (!usingWA && segEnd !== null && t >= segEnd) {
+          // fallback path: stop as close to the boundary as the element allows
           audio.pause();
-          setCursor(stopAt); highlight(stopAt - 0.005);
-          stopAt = null;
+          setCursor(segEnd); highlight(segEnd - 0.005);
+          segEnd = null;
         } else {
-          if (stopAt !== null) t = Math.min(t, stopAt);
           setCursor(t); highlight(t);
-          // keep the playhead centered; cached widths so this loop does no layout reads
-          body.scrollLeft = t / dur * cachedInnerW - cachedBodyW * 0.5;
+          // follow the playhead only for full-clip playback; a segment that
+          // was brought into view stays put
+          if (segEnd === null) {
+            body.scrollLeft = t / dur * cachedInnerW - cachedBodyW * 0.5;
+          }
         }
       }
-      if (wipe < 1 || playing) requestAnimationFrame(loop);
+      if (wipe < 1 || isPlaying) requestAnimationFrame(loop);
       else { running = false; lastT = null; }
     }
     function ensureLoop() {
       if (!running) { running = true; lastT = null; requestAnimationFrame(loop); }
     }
 
-    var stopAt = null;
-    function playSpan(idx) {
-      var w = D.words[idx];
-      var begin = function () {
-        try { audio.currentTime = w.t0; } catch (err) {}
-        stopAt = w.t1;
-        lastMediaT = -1; lastShown = w.t0;
-        setCursor(w.t0); highlight(w.t0 + 0.005);
-        audio.play();
-      };
-      // seeking before metadata arrives is silently ignored — wait for it
-      if (audio.readyState >= 1) begin();
-      else {
-        audio.addEventListener('loadedmetadata', begin, { once: true });
-        audio.load();
-      }
-    }
-    function togglePlay() {
-      if (audio.paused || audio.ended) { stopAt = null; audio.play(); }
-      else { audio.pause(); }
-    }
     btn.addEventListener('click', togglePlay);
     fig.addEventListener('keydown', function (e) {
       if (e.code === 'Space') {
@@ -857,25 +963,23 @@
         if (!e.repeat) togglePlay();
       }
     });
-    audio.addEventListener('play', function () {
-      btn.textContent = '❙❙'; btn.setAttribute('aria-label', 'Pause voice sample');
-      lastMediaT = -1; lastShown = 0;
-      ensureLoop();
-    });
-    audio.addEventListener('pause', function () {
-      btn.textContent = '▶'; btn.setAttribute('aria-label', 'Play voice sample');
-    });
+    // fallback <audio> element events (no-ops in Web Audio mode)
+    audio.addEventListener('play', function () { setBtn(true); lastMediaT = -1; lastShown = 0; ensureLoop(); });
+    audio.addEventListener('pause', function () { setBtn(false); });
     audio.addEventListener('ended', function () {
-      highlight(-1);
-      cursor.style.opacity = 0;
-      timeEl.textContent = '';
+      highlight(-1); cursor.style.opacity = 0; timeEl.textContent = '';
     });
     body.addEventListener('click', function (e) {
       var rect = inner.getBoundingClientRect();
       var t = Math.max(0, Math.min(dur - 0.05, (e.clientX - rect.left) / rect.width * dur));
-      try { audio.currentTime = t; } catch (err) {}
-      stopAt = null;
-      lastMediaT = -1; lastShown = t;
+      pausedAt = t;
+      if (usingWA) {
+        if (playing) pPlay(t);
+      } else {
+        try { audio.currentTime = t; } catch (err) {}
+        lastMediaT = -1; lastShown = t;
+      }
+      segEnd = null;
       setCursor(t); highlight(t);
     });
     window.addEventListener('resize', function () { requestAnimationFrame(draw); });

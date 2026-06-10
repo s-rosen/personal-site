@@ -49,6 +49,29 @@ IPA = [
     ("reliable", "ɹɪˈlaɪəbəl"),
 ]
 
+# Draft ToBI tones tier: (word index, label, anchor). Anchors resolve against
+# the current pitch track + word boundaries on every run: "peak" = time of the
+# word's F0 maximum, "low" = F0 minimum, "end" = word offset (boundary tones).
+# Hand-tune labels here; times stay glued to the data.
+TOBI = [
+    (0,  "H*",   "peak"),  # Hi — rise to 144 Hz
+    (2,  "!H*",  "peak"),  # Simon — downstepped from Hi
+    (3,  "L*",   "low"),   # Rosen — low accent...
+    (3,  "L-H%", "end"),   # ...with continuation rise (94->116) before pause
+    (6,  "H*",   "peak"),  # linguist
+    (9,  "H*",   "peak"),  # interested
+    (11, "!H*",  "peak"),  # solving
+    (13, "L+H*", "peak"),  # uncanny — focal rise-fall, peak on /kae/
+    (14, "!H*",  "peak"),  # valley — post-focal downstep
+    (16, "H*",   "peak"),  # synthetic
+    (17, "H*",   "peak"),  # speech
+    (17, "L-L%", "end"),   # phrase-final fall before 647 ms pause
+    (19, "H*",   "peak"),  # making
+    (21, "!H*",  "peak"),  # voice
+    (24, "H*",   "peak"),  # reliable — nuclear accent
+    (24, "L-L%", "end"),   # final declarative fall
+]
+
 snd = parselmouth.Sound(str(WAV))
 dur = snd.get_total_duration()
 print(f"duration: {dur:.3f}s")
@@ -164,6 +187,24 @@ if words is None:
                 hi += 1
         print(f"matched {len(words)}/{len(IPA)} words")
 
+# ---------- ToBI tier (times resolved from anchors) ----------
+tobi = []
+for idx, label, anchor in TOBI:
+    w = words[idx]
+    if anchor == "end":
+        t = w["t1"]
+    else:
+        pts = [p for p in f0 if w["t0"] <= p[0] <= w["t1"]]
+        if not pts:
+            t = (w["t0"] + w["t1"]) / 2
+        elif anchor == "low":
+            t = min(pts, key=lambda p: p[1])[0]
+        else:  # peak
+            t = max(pts, key=lambda p: p[1])[0]
+    tobi.append([round(t, 3), label])
+tobi.sort(key=lambda x: x[0])
+print(f"tobi events: {len(tobi)}")
+
 out = {
     "duration": round(dur, 3),
     "fmax": FMAX,
@@ -172,6 +213,7 @@ out = {
     "pitch": f0,
     "pitchRange": PITCH_RANGE,
     "words": words,
+    "tobi": tobi,
 }
 payload = json.dumps(out, ensure_ascii=False, separators=(",", ":"))
 OUT.write_text(payload, encoding="utf-8")
