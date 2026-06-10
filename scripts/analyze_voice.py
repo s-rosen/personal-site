@@ -195,28 +195,38 @@ if words is None:
                 hi += 1
         print(f"matched {len(words)}/{len(IPA)} words")
 
-# ---------- ToBI tier (times resolved from anchors) ----------
-tobi = []
-for entry in TOBI:
-    idx, label, anchor = entry[0], entry[1], entry[2]
-    w = words[idx]
-    span = w["t1"] - w["t0"]
-    if isinstance(anchor, float):
-        t = w["t0"] + anchor * span
-    elif anchor == "end":
-        t = w["t1"]
-    else:
-        w0, w1 = (entry[3], entry[4]) if len(entry) == 5 else (0.0, 1.0)
-        lo, hi = w["t0"] + w0 * span, w["t0"] + w1 * span
-        pts = [p for p in f0 if lo <= p[0] <= hi]
-        if not pts:
-            t = (lo + hi) / 2
-        elif anchor == "low":
-            t = min(pts, key=lambda p: p[1])[0]
-        else:  # peak
-            t = max(pts, key=lambda p: p[1])[0]
-    tobi.append([round(t, 3), label])
-tobi.sort(key=lambda x: x[0])
+# ---------- ToBI tier ----------
+# Hand-edited ToBI (saved from the boundary editor) wins over the TOBI spec
+# list above; delete "tobi" from the JSON to regenerate from the spec.
+tobi = None
+if OUT.exists():
+    _existing = json.loads(OUT.read_text(encoding="utf-8"))
+    if _existing.get("tobi"):
+        tobi = _existing["tobi"]
+        print(f"tobi: reusing {len(tobi)} existing (hand-edited) events")
+
+if tobi is None:
+    tobi = []
+    for entry in TOBI:
+        idx, label, anchor = entry[0], entry[1], entry[2]
+        w = words[idx]
+        span = w["t1"] - w["t0"]
+        if isinstance(anchor, float):
+            t = w["t0"] + anchor * span
+        elif anchor == "end":
+            t = w["t1"]
+        else:
+            w0, w1 = (entry[3], entry[4]) if len(entry) == 5 else (0.0, 1.0)
+            lo, hi = w["t0"] + w0 * span, w["t0"] + w1 * span
+            pts = [p for p in f0 if lo <= p[0] <= hi]
+            if not pts:
+                t = (lo + hi) / 2
+            elif anchor == "low":
+                t = min(pts, key=lambda p: p[1])[0]
+            else:  # peak
+                t = max(pts, key=lambda p: p[1])[0]
+        tobi.append([round(t, 3), label])
+    tobi.sort(key=lambda x: x[0])
 print(f"tobi events: {len(tobi)}")
 
 out = {

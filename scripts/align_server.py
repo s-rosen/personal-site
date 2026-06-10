@@ -23,15 +23,23 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             self.send_error(404)
             return
         n = int(self.headers.get("Content-Length", 0))
-        words = json.loads(self.rfile.read(n).decode("utf-8"))
+        incoming = json.loads(self.rfile.read(n).decode("utf-8"))
+        # legacy payload was a bare words list; current is {words, tobi}
+        if isinstance(incoming, list):
+            words, tobi = incoming, None
+        else:
+            words, tobi = incoming.get("words"), incoming.get("tobi")
         jp = ROOT / "assets" / "speech-data.json"
         data = json.loads(jp.read_text(encoding="utf-8"))
-        data["words"] = words
+        if words is not None:
+            data["words"] = words
+        if tobi is not None:
+            data["tobi"] = tobi
         payload = json.dumps(data, ensure_ascii=False, separators=(",", ":"))
         jp.write_text(payload, encoding="utf-8")
         (ROOT / "assets" / "speech-data.js").write_text(
             "window.SPEECH_DATA=" + payload + ";", encoding="utf-8")
-        print(f"saved {len(words)} words")
+        print(f"saved {len(words or [])} words, {len(tobi or [])} tobi events")
         self.send_response(200)
         self.send_header("Content-Type", "application/json")
         self.end_headers()

@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ToBI in twenty minutes</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: Georgia, "Times New Roman", serif;
+    background: #f5f2ea; color: #221d15;
+    font-size: 17px; line-height: 1.65;
+  }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 48px 24px 80px; }
+  h1 { font-size: 2.1rem; margin-bottom: 6px; }
+  .sub { color: #777; font-style: italic; margin-bottom: 36px; }
+  h2 {
+    font-size: 1.35rem; margin: 44px 0 14px;
+    padding-bottom: 6px; border-bottom: 2px solid #a3461f;
+  }
+  p { margin-bottom: 14px; }
+  code, .lab {
+    font-family: Consolas, monospace; font-size: .9em;
+    background: #ece7da; padding: 1px 5px; border-radius: 3px;
+  }
+  table { border-collapse: collapse; width: 100%; margin: 18px 0; background: #fffdf7; }
+  th, td { border: 1px solid #ddd5c2; padding: 10px 12px; text-align: left; vertical-align: top; font-size: .95rem; }
+  th { background: #ece7da; font-size: .85rem; text-transform: uppercase; letter-spacing: .06em; }
+  td svg { display: block; }
+  .tip {
+    background: #fffdf7; border-left: 4px solid #a3461f;
+    padding: 12px 16px; margin: 18px 0; font-size: .95rem;
+  }
+  ul, ol { margin: 0 0 14px 26px; }
+  li { margin-bottom: 6px; }
+  .small { font-size: .85rem; color: #777; }
+  a { color: #a3461f; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>ToBI in twenty minutes</h1>
+  <div class="sub">Tones and Break Indices for Mainstream American English — a working primer, with your own recording as the worked example.</div>
+
+  <h2>1 · The idea</h2>
+  <p>ToBI (<i>Tones and Break Indices</i>) is the standard transcription system for English intonation, built on the <b>autosegmental-metrical</b> framework (Pierrehumbert 1980; conventions by Silverman, Beckman, Pitrelli, Ostendorf, Wightman, Price, Pierrehumbert &amp; Hirschberg, 1992). Its central claim: a melody is not a continuous shape but a string of discrete <b>tonal targets</b>, each either <b>H</b>(igh) or <b>L</b>(ow), sparsely anchored to specific landmarks. Everything between targets is mere interpolation.</p>
+  <p>Three kinds of tonal events build a tune:</p>
+  <ul>
+    <li><b>Pitch accents</b> (marked with <code>*</code>) — anchored to the <i>stressed syllable</i> of prominent words.</li>
+    <li><b>Phrase accents</b> (<code>H-</code>, <code>L-</code>) — control the pitch from the last accent to the edge of an <i>intermediate phrase</i> (ip).</li>
+    <li><b>Boundary tones</b> (<code>H%</code>, <code>L%</code>, initial <code>%H</code>) — mark the edge of a full <i>intonational phrase</i> (IP).</li>
+  </ul>
+  <p>Every IP needs at least one pitch accent, one phrase accent, and one boundary tone. Phrase accent + boundary tone arrive welded together at IP ends: <code>L-L%</code>, <code>L-H%</code>, <code>H-H%</code>, <code>H-L%</code>.</p>
+
+  <h2>2 · Pitch accents</h2>
+  <p>The star marks which tone sits <i>on</i> the stressed syllable. Shaded box = accented syllable.</p>
+  <table>
+    <tr><th>Label</th><th>Shape</th><th>Sound &amp; typical use</th></tr>
+    <tr>
+      <td><code>H*</code></td>
+      <td><svg width="150" height="50"><rect x="55" y="4" width="40" height="42" fill="#a3461f22"/><path d="M8 36 Q 55 34 75 14 Q 100 18 142 30" fill="none" stroke="#a3461f" stroke-width="2.5"/></svg></td>
+      <td>Plain peak on the stressed syllable. The default accent of declaratives; marks new information.</td>
+    </tr>
+    <tr>
+      <td><code>L*</code></td>
+      <td><svg width="150" height="50"><rect x="55" y="4" width="40" height="42" fill="#a3461f22"/><path d="M8 22 Q 55 26 75 40 Q 100 38 142 28" fill="none" stroke="#a3461f" stroke-width="2.5"/></svg></td>
+      <td>Valley on the stressed syllable. Prominent but low — yes/no questions (<code>L* H-H%</code>), backgrounded or non-asserted items.</td>
+    </tr>
+    <tr>
+      <td><code>L+H*</code></td>
+      <td><svg width="150" height="50"><rect x="55" y="4" width="40" height="42" fill="#a3461f22"/><path d="M8 40 L 50 40 Q 65 38 78 10 Q 100 16 142 32" fill="none" stroke="#a3461f" stroke-width="2.5"/></svg></td>
+      <td>Sharp rise from a genuine low up to a peak <i>on</i> the stressed syllable. Contrastive focus, correction ("no, <i>UN</i>canny").</td>
+    </tr>
+    <tr>
+      <td><code>L*+H</code></td>
+      <td><svg width="150" height="50"><rect x="55" y="4" width="40" height="42" fill="#a3461f22"/><path d="M8 26 Q 50 30 72 40 Q 95 36 112 12 L 142 18" fill="none" stroke="#a3461f" stroke-width="2.5"/></svg></td>
+      <td>Low on the stressed syllable, rise arrives <i>after</i> it ("scooped"). Uncertainty, incredulity.</td>
+    </tr>
+    <tr>
+      <td><code>H+!H*</code></td>
+      <td><svg width="150" height="50"><rect x="55" y="4" width="40" height="42" fill="#a3461f22"/><path d="M8 12 L 50 12 L 62 24 L 95 26 Q 115 28 142 34" fill="none" stroke="#a3461f" stroke-width="2.5"/></svg></td>
+      <td>High just before the stressed syllable, stepping <i>down</i> onto it. Implied familiarity; "as we both know."</td>
+    </tr>
+  </table>
+
+  <h2>3 · Downstep (!)</h2>
+  <p><code>!</code> before an H means that H is realized in a <b>compressed pitch range</b> — a terrace below the previous H in the same intermediate phrase. Chains of <code>H* !H* !H*…</code> create the descending staircase typical of neutral declaratives. Bitonal accents trigger downstep on what follows. Variants: <code>!H*</code>, <code>L+!H*</code>, <code>L*+!H</code>; <code>H+!H*</code> carries its downstep built in. Downstep resets at intermediate-phrase boundaries.</p>
+
+  <h2>4 · Phrase accents and boundary tones</h2>
+  <table>
+    <tr><th>Combo</th><th>Shape</th><th>Meaning</th></tr>
+    <tr><td><code>L-L%</code></td><td><svg width="150" height="50"><path d="M8 14 Q 70 26 110 38 L 142 42" fill="none" stroke="#a3461f" stroke-width="2.5"/></svg></td><td>Full final fall. Finished declarative. The default "period."</td></tr>
+    <tr><td><code>L-H%</code></td><td><svg width="150" height="50"><path d="M8 18 Q 70 34 105 38 Q 125 36 142 22" fill="none" stroke="#a3461f" stroke-width="2.5"/></svg></td><td>Fall then small final rise: the <b>continuation rise</b> — "I'm not done," list-internal comma.</td></tr>
+    <tr><td><code>H-H%</code></td><td><svg width="150" height="50"><path d="M8 38 Q 70 32 105 20 Q 125 12 142 6" fill="none" stroke="#a3461f" stroke-width="2.5"/></svg></td><td>High and rising further. Canonical yes/no question ending (pairs with <code>L*</code>).</td></tr>
+    <tr><td><code>H-L%</code></td><td><svg width="150" height="50"><path d="M8 34 Q 60 18 95 16 L 142 16" fill="none" stroke="#a3461f" stroke-width="2.5"/></svg></td><td>Rise to a sustained plateau — calling contour, chanted lists, "more coming at the same level."</td></tr>
+    <tr><td><code>%H</code></td><td><svg width="150" height="50"><path d="M8 8 Q 40 14 70 28 Q 105 34 142 32" fill="none" stroke="#a3461f" stroke-width="2.5"/></svg></td><td>IP <i>begins</i> high — before any accent. Marks an energetic or linked-discourse onset.</td></tr>
+  </table>
+  <p>A bare <code>H-</code> or <code>L-</code> (break 3) closes an intermediate phrase <i>inside</i> an IP — a smaller seam than a full boundary.</p>
+
+  <h2>5 · Break indices</h2>
+  <ul>
+    <li><b>0</b> — clitic boundary, words fused ("gonna").</li>
+    <li><b>1</b> — ordinary word boundary. The default.</li>
+    <li><b>2</b> — a mismatch: pause without tonal closure, or closure without pause.</li>
+    <li><b>3</b> — intermediate phrase boundary; needs a phrase accent.</li>
+    <li><b>4</b> — full intonational phrase boundary; needs phrase accent + boundary tone.</li>
+  </ul>
+
+  <h2>6 · Your recording, annotated</h2>
+  <p class="small">"Hi, I'm Simon Rosen. I'm a linguist who is interested in solving the uncanny valley in synthetic speech, and making our voice agents more reliable." Three IPs (pauses of 444 ms and 647 ms). Labels as currently saved:</p>
+  <table>
+    <tr><th>t (s)</th><th>Label</th><th>Where / why</th></tr>
+    <tr><td>0.470</td><td><code>L+H*</code></td><td><b>Hi</b> — dips to 116 Hz then rises +3.7 st to 144, peak late in the syllable.</td></tr>
+    <tr><td>0.750</td><td><code>!H*</code></td><td><b>Simon</b> — peak 122 Hz, terraced below Hi's 144.</td></tr>
+    <tr><td>1.260</td><td><code>L*</code></td><td><b>Rosen</b> — RO- sits low (~98–100 Hz) near the bottom of the range.</td></tr>
+    <tr><td>1.523</td><td><code>L-L%</code></td><td>IP1 ends; heard as a low ending (the track's final uptick is inaudible).</td></tr>
+    <tr><td>2.961</td><td><code>H*</code></td><td><b>interested</b> — high onset on IN- (the 128 Hz bump at the word edge).</td></tr>
+    <tr><td>3.670</td><td><code>L*</code></td><td><b>solving</b> — SOLV- prominent but pitched low (~101–105 Hz).</td></tr>
+    <tr><td>4.266</td><td><code>H+!H*</code></td><td><b>uncanny</b> — un- heard high, stepping down onto CAN-.</td></tr>
+    <tr><td>4.740</td><td><code>!H*</code></td><td><b>valley</b> — the terrace continues.</td></tr>
+    <tr><td>5.490</td><td><code>!H*</code></td><td><b>synthetic</b> — level ~108 Hz on THET (the 122 spike is /θ/ onset perturbation, ignored).</td></tr>
+    <tr><td>5.850</td><td><code>H*</code></td><td><b>speech</b> — 138 Hz on the vowel; nuclear accent of IP2.</td></tr>
+    <tr><td>6.185</td><td><code>L-L%</code></td><td>IP2 ends with a fall before the 647 ms pause.</td></tr>
+    <tr><td>6.860</td><td><code>%H</code></td><td><b>and</b> — IP3 opens high (138 Hz) on an unaccented function word.</td></tr>
+    <tr><td>7.150</td><td><code>L+H*</code></td><td><b>making</b> — +4.7 st rise from a 107 Hz plateau through MAK-.</td></tr>
+    <tr><td>7.550</td><td><code>!H*</code></td><td><b>voice</b> — 123 Hz, stepped down from making's 140.</td></tr>
+    <tr><td>8.650</td><td><code>L+!H*</code></td><td><b>reliable</b> — rise from low re- to a downstepped 124 Hz peak; nuclear.</td></tr>
+    <tr><td>8.996</td><td><code>L-L%</code></td><td>Final declarative fall to 95 Hz.</td></tr>
+  </table>
+  <p class="small">Note "I'm a linguist" carries no accent — the high on "a" is interpolation on the way down, and you judged no syllable in that clause prominent.</p>
+
+  <h2>7 · Labeling pitfalls (earned the hard way)</h2>
+  <ul>
+    <li><b>Ears first, track second.</b> The f0 track is evidence, not truth. If you hear a fall and the track shows a 60 ms uptick, trust the ear (creak and glottalization fool trackers).</li>
+    <li><b>Segmental perturbation:</b> f0 spikes 20–40 ms after voiceless obstruents (/s/, /θ/, /k/…) are articulatory, not intonational. Your "solving" and "synthetic" both had them.</li>
+    <li><b>Octave errors:</b> isolated doubling/halving islands in the track (your "uncanny" 447 Hz spike) are tracker artifacts.</li>
+    <li><b>Label sparsely.</b> Not every word is accented; prenuclear material often carries nothing. When in doubt between H* and L+H*, ask whether the low before the peak is a real target or just where the voice happened to be.</li>
+    <li><b>The star goes on the stressed syllable</b>, even when the peak is displaced later (peak delay is common; the label placement should still index the accented syllable).</li>
+  </ul>
+
+  <h2>8 · Going deeper</h2>
+  <ul>
+    <li>Beckman &amp; Ayers Elam, <i>Guidelines for ToBI Labelling</i> — the canonical manual.</li>
+    <li>The Ohio State ToBI training materials (web course with audio drills).</li>
+    <li>Pierrehumbert (1980), <i>The Phonology and Phonetics of English Intonation</i> — the theory underneath.</li>
+    <li>Veilleux, Shattuck-Hufnagel &amp; Brugos, MIT OpenCourseWare 6.911 <i>Transcribing Prosodic Structure of Spoken Utterances with ToBI</i>.</li>
+  </ul>
+</div>
+</body>
+</html>

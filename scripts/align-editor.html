@@ -22,11 +22,27 @@
   #status { color: #777; font-size: 12.5px; }
   .help { width: 100%; color: #888; font-size: 12px; }
   #scroll { overflow-x: auto; padding-bottom: 14px; }
-  #stage { position: relative; height: 520px; margin: 14px 0 0; }
+  #stage { position: relative; height: 556px; margin: 14px 0 0; }
   canvas { display: block; position: absolute; top: 0; left: 0; }
   .lane { position: absolute; left: 0; right: 0; border-top: 1px solid #d7d2c4; background: #fffdf7; }
-  .lane.ipa  { top: 400px; height: 56px; }
-  .lane.word { top: 456px; height: 56px; }
+  .lane.tobi { top: 400px; height: 44px; }
+  .lane.ipa  { top: 444px; height: 56px; }
+  .lane.word { top: 500px; height: 56px; }
+  .tpt {
+    position: absolute; top: 0; bottom: 0; width: 13px; margin-left: -6px;
+    cursor: ew-resize; z-index: 6;
+  }
+  .tpt::before {
+    content: ""; position: absolute; left: 6px; top: 0; bottom: 0;
+    width: 1px; background: #a3461f;
+  }
+  .tpt span {
+    position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+    font-family: Consolas, monospace; font-size: 12.5px; color: #a3461f;
+    background: rgba(255,253,247,.9); padding: 0 3px; white-space: nowrap;
+    pointer-events: none;
+  }
+  .tpt:hover::before { width: 3px; left: 5px; }
   .iv {
     position: absolute; top: 0; bottom: 0;
     display: flex; align-items: center; justify-content: center;
@@ -36,7 +52,7 @@
   .iv:hover { background: rgba(163,70,31,.08); }
   .iv.playing { background: rgba(163,70,31,.18); }
   .bnd {
-    position: absolute; top: 0; height: 520px; width: 11px;
+    position: absolute; top: 0; height: 556px; width: 11px;
     margin-left: -5px; cursor: ew-resize; z-index: 5;
   }
   .bnd::after {
@@ -45,7 +61,7 @@
   }
   .bnd:hover::after, .bnd.drag::after { width: 3px; left: 4px; background: #0d4f9e; }
   #cursor {
-    position: absolute; top: 0; height: 520px; width: 1px;
+    position: absolute; top: 0; height: 556px; width: 1px;
     background: #a3461f; pointer-events: none; z-index: 4; display: none;
   }
   #dragtip {
@@ -61,12 +77,14 @@
   <button id="zout">− zoom</button>
   <button id="zin">+ zoom</button>
   <button id="save" class="primary">Save to site</button>
+  <a href="/scripts/tobi-guide.html" target="_blank" style="font-size:13px;">ToBI guide ↗</a>
   <span id="status">decoding audio…</span>
-  <span class="help">Drag the blue lines to move word boundaries (shared boundaries move together). <b>Double-click a shared boundary to split it</b> and open a gap (silence) between the words; drag two edges back together to re-join them. Click a word box to hear just that word. Click the spectrogram to seek. Save writes straight into assets/speech-data.js — then refresh the main site.</span>
+  <span class="help">Drag the blue lines to move word boundaries (shared boundaries move together). <b>Double-click a shared boundary to split it</b> and open a gap (silence) between the words; drag two edges back together to re-join them. <b>ToBI lane:</b> drag a label to move it, double-click it to relabel (empty = delete), double-click empty lane space to add one. Click a word box to hear just that word. Click the spectrogram to seek. Save writes straight into assets/speech-data.js — then refresh the main site.</span>
 </header>
 <div id="scroll">
   <div id="stage">
     <canvas id="spec"></canvas>
+    <div class="lane tobi" id="lane-tobi"></div>
     <div class="lane ipa" id="lane-ipa"></div>
     <div class="lane word" id="lane-word"></div>
     <div id="cursor"></div>
@@ -90,7 +108,9 @@
   var dragtip = document.getElementById('dragtip');
   var laneIpa = document.getElementById('lane-ipa');
   var laneWord = document.getElementById('lane-word');
+  var laneTobi = document.getElementById('lane-tobi');
   var playBtn = document.getElementById('play');
+  var tobi = (D.tobi || []).map(function (ev) { return { t: ev[0], label: ev[1] }; });
 
   // decode spectrogram
   var raw = atob(D.spec.b64);
@@ -166,10 +186,28 @@
     });
   }
 
+  function renderTobi() {
+    laneTobi.querySelectorAll('.tpt').forEach(function (e) { e.remove(); });
+    tobi.forEach(function (ev, i) {
+      var m = document.createElement('div');
+      m.className = 'tpt';
+      m.style.left = t2x(ev.t) + 'px';
+      m.dataset.i = i;
+      m.title = ev.label + ' @ ' + ev.t.toFixed(3) + 's — drag to move, double-click to edit';
+      var s = document.createElement('span');
+      s.textContent = ev.label;
+      m.appendChild(s);
+      laneTobi.appendChild(m);
+    });
+  }
+
   function refreshPositions() {
     document.querySelectorAll('.bnd').forEach(function (h) {
       var w = words[h.dataset.idx];
       h.style.left = t2x(w[h.dataset.side]) + 'px';
+    });
+    laneTobi.querySelectorAll('.tpt').forEach(function (m) {
+      m.style.left = t2x(tobi[m.dataset.i].t) + 'px';
     });
     words.forEach(function (w, idx) {
       ivEls[idx].forEach(function (el) {
@@ -181,8 +219,13 @@
   }
 
   // ---------- dragging ----------
-  var drag = null;
+  var drag = null, tdrag = null;
   stage.addEventListener('mousedown', function (e) {
+    if (e.target.classList.contains('tpt')) {
+      e.preventDefault();
+      tdrag = { i: +e.target.dataset.i, el: e.target };
+      return;
+    }
     if (!e.target.classList.contains('bnd')) return;
     e.preventDefault();
     var idx = +e.target.dataset.idx, side = e.target.dataset.side;
@@ -205,6 +248,19 @@
     e.target.classList.add('drag');
   });
   window.addEventListener('mousemove', function (e) {
+    if (tdrag) {
+      var trect = stage.getBoundingClientRect();
+      var tt = x2t(e.clientX - trect.left);
+      tobi[tdrag.i].t = Math.round(tt * 1000) / 1000;
+      tdrag.el.style.left = t2x(tobi[tdrag.i].t) + 'px';
+      tdrag.el.title = tobi[tdrag.i].label + ' @ ' + tobi[tdrag.i].t.toFixed(3) + 's';
+      dragtip.style.display = 'block';
+      dragtip.style.left = (e.clientX + 12) + 'px';
+      dragtip.style.top = (e.clientY - 28) + 'px';
+      dragtip.textContent = tobi[tdrag.i].t.toFixed(3) + ' s';
+      dirty();
+      return;
+    }
     if (!drag) return;
     var rect = stage.getBoundingClientRect();
     var t = Math.max(drag.lo, Math.min(drag.hi, x2t(e.clientX - rect.left)));
@@ -218,6 +274,28 @@
   });
   window.addEventListener('mouseup', function () {
     if (drag) { drag.el.classList.remove('drag'); drag = null; dragtip.style.display = 'none'; }
+    if (tdrag) { tdrag = null; dragtip.style.display = 'none'; }
+  });
+
+  // ToBI lane: double-click a label to edit/delete, empty space to add
+  laneTobi.addEventListener('dblclick', function (e) {
+    e.stopPropagation();
+    if (e.target.classList.contains('tpt')) {
+      var i = +e.target.dataset.i;
+      var v = prompt('ToBI label (leave empty to delete):', tobi[i].label);
+      if (v === null) return;
+      if (v.trim() === '') tobi.splice(i, 1);
+      else tobi[i].label = v.trim();
+      renderTobi(); dirty();
+    } else {
+      var rect = stage.getBoundingClientRect();
+      var t = Math.round(x2t(e.clientX - rect.left) * 1000) / 1000;
+      var lab = prompt('New ToBI label at ' + t.toFixed(3) + ' s:', 'H*');
+      if (!lab || !lab.trim()) return;
+      tobi.push({ t: t, label: lab.trim() });
+      tobi.sort(function (a, b) { return a.t - b.t; });
+      renderTobi(); dirty();
+    }
   });
 
   // double-click a shared boundary to split it into two edges with a gap between
@@ -347,7 +425,10 @@
   var unsaved = false;
   function dirty() { unsaved = true; status.textContent = 'unsaved changes'; }
   document.getElementById('save').addEventListener('click', function () {
-    fetch('/save', { method: 'POST', body: JSON.stringify(words) })
+    var tobiOut = tobi
+      .map(function (ev) { return [Math.round(ev.t * 1000) / 1000, ev.label]; })
+      .sort(function (a, b) { return a[0] - b[0]; });
+    fetch('/save', { method: 'POST', body: JSON.stringify({ words: words, tobi: tobiOut }) })
       .then(function (r) { return r.json(); })
       .then(function () { unsaved = false; status.textContent = 'saved ✓ — refresh the main site to see it'; })
       .catch(function (e) { status.textContent = 'save failed: ' + e; });
@@ -358,6 +439,7 @@
 
   renderSpec();
   renderWords();
+  renderTobi();
 })();
 </script>
 </body>
