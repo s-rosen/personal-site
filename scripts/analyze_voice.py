@@ -58,8 +58,11 @@ FMAX = 5000.0
 spec = snd.to_spectrogram(window_length=0.005, maximum_frequency=FMAX,
                           time_step=0.008, frequency_step=62.5)
 S = 10 * np.log10(np.maximum(spec.values, 1e-12))  # bins x frames
+# Praat display defaults: +6 dB/octave pre-emphasis, 70 dB dynamic range
+freqs = np.array(spec.ys())
+S = S + (6.0 * np.log2(np.maximum(freqs, 50.0) / 1000.0))[:, None]
 top = S.max()
-DYN = 60.0  # dB dynamic range, Praat default-ish
+DYN = 70.0
 S = np.clip((S - (top - DYN)) / DYN, 0, 1)
 q = (S * 255).astype(np.uint8)  # bins x frames
 bins, frames = q.shape
@@ -73,27 +76,25 @@ def intens_at(t):
     return v if v is not None and not math.isnan(v) else -200.0
 imax = max(intens_at(t) for t in np.arange(0.05, dur - 0.05, 0.01))
 
-# ---------- formants (Burg) ----------
-fmt = snd.to_formant_burg(time_step=0.01, max_number_of_formants=5,
+# ---------- formants (Burg, Praat-style: each track independent) ----------
+# Praat's editor samples formants every 0.25 * 25 ms window = 6.25 ms and
+# draws every formant separately; a mild intensity gate just drops the
+# random speckles in outright silence.
+fmt = snd.to_formant_burg(time_step=0.00625, max_number_of_formants=5,
                           maximum_formant=5000.0)
-formants = []
-for t in np.arange(0.02, dur - 0.02, 0.01):
-    if intens_at(t) < imax - 28:
+formants = {"f1": [], "f2": [], "f3": [], "f4": []}
+for t in fmt.ts():
+    if intens_at(t) < imax - 35:
         continue
-    row = [round(float(t), 3)]
-    ok = True
-    for i in (1, 2, 3):
+    for i in (1, 2, 3, 4):
         f = fmt.get_value_at_time(i, t)
-        if f is None or math.isnan(f) or f > FMAX:
-            ok = False
-            break
-        row.append(int(round(f)))
-    if ok:
-        formants.append(row)
-print(f"formant points: {len(formants)}")
+        if f is not None and not math.isnan(f) and f <= FMAX:
+            formants[f"f{i}"].append([round(float(t), 3), int(round(f))])
+print("formant points:", {k: len(v) for k, v in formants.items()})
 
-# ---------- pitch ----------
-pitch = snd.to_pitch(time_step=0.01, pitch_floor=75, pitch_ceiling=400)
+# ---------- pitch (Praat editor view defaults: 75-500 Hz) ----------
+PITCH_RANGE = [75, 500]
+pitch = snd.to_pitch(time_step=0.01, pitch_floor=75, pitch_ceiling=500)
 f0 = []
 for t in np.arange(0.02, dur - 0.02, 0.01):
     v = pitch.get_value_at_time(t)
@@ -102,34 +103,45 @@ for t in np.arange(0.02, dur - 0.02, 0.01):
 print(f"pitch points: {len(f0)}")
 
 # ---------- word alignment ----------
-from faster_whisper import WhisperModel
-model = WhisperModel("base.en", device="cpu", compute_type="int8")
-segments, _ = model.transcribe(str(WAV), word_timestamps=True)
-heard = []
-for seg in segments:
-    for w in seg.words:
-        heard.append({"w": w.word.strip(), "t0": round(w.start, 3), "t1": round(w.end, 3)})
-print("whisper words:", [w["w"] for w in heard])
+# Hand-corrected boundaries (from scripts/align-editor.html) live in the
+# existing JSON; NEVER overwrite them with whisper output. Whisper only
+# runs on a fresh clip with no existing words.
+words = None
+if OUT.exists():
+    existing = json.loads(OUT.read_text(encoding="utf-8"))
+    if existing.get("words") and len(existing["words"]) == len(IPA):
+        words = existing["words"]
+        print(f"alignment: reusing {len(words)} existing (hand-corrected) words")
 
-def norm(s):
-    return "".join(c for c in s.lower() if c.isalpha() or c == "'")
+if words is None:
+    from faster_whisper import WhisperModel
+    model = WhisperModel("base.en", device="cpu", compute_type="int8")
+    segments, _ = model.transcribe(str(WAV), word_timestamps=True)
+    heard = []
+    for seg in segments:
+        for w in seg.words:
+            heard.append({"w": w.word.strip(), "t0": round(w.start, 3), "t1": round(w.end, 3)})
+    print("whisper words:", [w["w"] for w in heard])
 
-words = []
-if len(heard) == len(IPA) and all(norm(h["w"]) == norm(g[0]) for h, g in zip(heard, IPA)):
-    for h, (g, ipa) in zip(heard, IPA):
-        words.append({"w": g, "ipa": ipa, "t0": h["t0"], "t1": h["t1"]})
-    print("alignment: exact 1:1 match")
-else:
-    # sequential best-effort match; flag for manual review
-    print("alignment: MISMATCH - whisper heard different words, review needed")
-    hi = 0
-    for g, ipa in IPA:
-        while hi < len(heard) and norm(heard[hi]["w"]) != norm(g):
-            hi += 1
-        if hi < len(heard):
-            words.append({"w": g, "ipa": ipa, "t0": heard[hi]["t0"], "t1": heard[hi]["t1"]})
-            hi += 1
-    print(f"matched {len(words)}/{len(IPA)} words")
+    def norm(s):
+        return "".join(c for c in s.lower() if c.isalpha() or c == "'")
+
+    words = []
+    if len(heard) == len(IPA) and all(norm(h["w"]) == norm(g[0]) for h, g in zip(heard, IPA)):
+        for h, (g, ipa) in zip(heard, IPA):
+            words.append({"w": g, "ipa": ipa, "t0": h["t0"], "t1": h["t1"]})
+        print("alignment: exact 1:1 match")
+    else:
+        # sequential best-effort match; flag for manual review
+        print("alignment: MISMATCH - whisper heard different words, review needed")
+        hi = 0
+        for g, ipa in IPA:
+            while hi < len(heard) and norm(heard[hi]["w"]) != norm(g):
+                hi += 1
+            if hi < len(heard):
+                words.append({"w": g, "ipa": ipa, "t0": heard[hi]["t0"], "t1": heard[hi]["t1"]})
+                hi += 1
+        print(f"matched {len(words)}/{len(IPA)} words")
 
 out = {
     "duration": round(dur, 3),
@@ -137,8 +149,10 @@ out = {
     "spec": {"bins": bins, "frames": frames, "tStep": 0.008, "t0": spec.x1, "b64": spec_b64},
     "formants": formants,
     "pitch": f0,
-    "pitchRange": [75, 400],
+    "pitchRange": PITCH_RANGE,
     "words": words,
 }
-OUT.write_text(json.dumps(out, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
-print(f"wrote {OUT} ({OUT.stat().st_size/1024:.0f} KB)")
+payload = json.dumps(out, ensure_ascii=False, separators=(",", ":"))
+OUT.write_text(payload, encoding="utf-8")
+OUT.with_suffix(".js").write_text("window.SPEECH_DATA=" + payload + ";", encoding="utf-8")
+print(f"wrote {OUT} ({OUT.stat().st_size/1024:.0f} KB) + speech-data.js")
