@@ -62,7 +62,7 @@
   <button id="zin">+ zoom</button>
   <button id="save" class="primary">Save to site</button>
   <span id="status">loaded</span>
-  <span class="help">Drag the blue lines to move word boundaries (shared boundaries move together). Click a word box to hear just that word. Click the spectrogram to seek. Save writes straight into assets/speech-data.js — then refresh the main site.</span>
+  <span class="help">Drag the blue lines to move word boundaries (shared boundaries move together). <b>Double-click a shared boundary to split it</b> and open a gap (silence) between the words; drag two edges back together to re-join them. Click a word box to hear just that word. Click the spectrogram to seek. Save writes straight into assets/speech-data.js — then refresh the main site.</span>
 </header>
 <div id="scroll">
   <div id="stage">
@@ -73,7 +73,8 @@
   </div>
 </div>
 <div id="dragtip"></div>
-<audio id="audio" src="/assets/voice-intro.m4a" preload="auto"></audio>
+<!-- WAV, not m4a: sample-exact seeking on the same timeline the spectrogram was computed from -->
+<audio id="audio" src="/assets/voice-intro.wav" preload="auto"></audio>
 <script src="/assets/speech-data.js"></script>
 <script>
 (function () {
@@ -220,6 +221,25 @@
     if (drag) { drag.el.classList.remove('drag'); drag = null; dragtip.style.display = 'none'; }
   });
 
+  // double-click a shared boundary to split it into two edges with a gap between
+  stage.addEventListener('dblclick', function (e) {
+    if (!e.target.classList.contains('bnd')) return;
+    e.preventDefault();
+    var t = words[e.target.dataset.idx][e.target.dataset.side];
+    var leftIdx = null, rightIdx = null;
+    words.forEach(function (w, i) {
+      if (Math.abs(w.t1 - t) < 0.006) leftIdx = i;
+      if (Math.abs(w.t0 - t) < 0.006) rightIdx = i;
+    });
+    if (leftIdx === null || rightIdx === null) return; // already a gap edge
+    var half = 0.025;
+    words[leftIdx].t1 = Math.round(Math.max(words[leftIdx].t0 + 0.02, t - half) * 1000) / 1000;
+    words[rightIdx].t0 = Math.round(Math.min(words[rightIdx].t1 - 0.02, t + half) * 1000) / 1000;
+    refreshPositions();
+    dirty();
+    status.textContent = 'boundary split — drag the two edges apart';
+  });
+
   // ---------- playback ----------
   var stopAt = null;
   function playSpan(idx) {
@@ -230,16 +250,16 @@
     ivEls[idx].forEach(function (el) { el.classList.add('playing'); });
     audio.play();
   }
-  audio.addEventListener('timeupdate', function () {
-    if (stopAt !== null && audio.currentTime >= stopAt) {
-      audio.pause(); stopAt = null;
-      ivEls.forEach(function (p) { p.forEach(function (el) { el.classList.remove('playing'); }); });
-    }
-  });
   function tick() {
     if (!audio.paused && !audio.ended) {
-      cursor.style.display = 'block';
-      cursor.style.left = t2x(audio.currentTime) + 'px';
+      // frame-accurate stop at the word's end boundary (timeupdate is far too coarse)
+      if (stopAt !== null && audio.currentTime >= stopAt) {
+        audio.pause(); stopAt = null;
+        ivEls.forEach(function (p) { p.forEach(function (el) { el.classList.remove('playing'); }); });
+      } else {
+        cursor.style.display = 'block';
+        cursor.style.left = t2x(audio.currentTime) + 'px';
+      }
     }
     requestAnimationFrame(tick);
   }
