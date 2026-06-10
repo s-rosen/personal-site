@@ -244,8 +244,10 @@
   var stopAt = null;
   function playSpan(idx) {
     var w = words[idx];
-    audio.currentTime = Math.max(0, w.t0 - 0.01);
-    stopAt = w.t1 + 0.01;
+    audio.currentTime = w.t0;
+    stopAt = w.t1;
+    cursor.style.display = 'block';
+    cursor.style.left = t2x(w.t0) + 'px';
     ivEls.forEach(function (p) { p.forEach(function (el) { el.classList.remove('playing'); }); });
     ivEls[idx].forEach(function (el) { el.classList.add('playing'); });
     audio.play();
@@ -254,11 +256,17 @@
     if (!audio.paused && !audio.ended) {
       // frame-accurate stop at the word's end boundary (timeupdate is far too coarse)
       if (stopAt !== null && audio.currentTime >= stopAt) {
-        audio.pause(); stopAt = null;
+        audio.pause();
+        // snap the playhead exactly onto the boundary line, never short or past it
+        cursor.style.display = 'block';
+        cursor.style.left = t2x(stopAt) + 'px';
+        stopAt = null;
         ivEls.forEach(function (p) { p.forEach(function (el) { el.classList.remove('playing'); }); });
       } else {
         cursor.style.display = 'block';
-        cursor.style.left = t2x(audio.currentTime) + 'px';
+        // while playing a segment, clamp the visual cursor to the segment end
+        var ct = stopAt !== null ? Math.min(audio.currentTime, stopAt) : audio.currentTime;
+        cursor.style.left = t2x(ct) + 'px';
       }
     }
     requestAnimationFrame(tick);
