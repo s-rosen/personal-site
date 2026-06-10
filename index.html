@@ -197,7 +197,7 @@
   }
   /* intro cascade: intervals fade in left to right, tone labels pop after */
   @keyframes ivIn { from { opacity: 0; } }
-  .tier .iv { animation: ivIn .45s ease both; }
+  .tier .iv { animation: ivIn .1s ease both; } /* near-instant: the decode is the show */
   @keyframes ptIn {
     from { opacity: 0; transform: translateX(-50%) translateY(6px); }
     to   { opacity: 1; transform: translateX(-50%) translateY(0); }
@@ -699,7 +699,7 @@
         requestAnimationFrame(frame);
       }, delayMs);
     }
-    var decodeSeq = 0.95; // seconds; each word's decode starts when the previous ends
+    var decodeSeq = 0.8; // seconds; each word's decode starts when the previous ends
     D.words.forEach(function (w, idx) {
       var l = (w.t0 / dur * 100) + '%', wd = ((w.t1 - w.t0) / dur * 100) + '%';
       var a = document.createElement('span');
@@ -709,7 +709,7 @@
       b.className = 'iv'; b.style.left = l; b.style.width = wd; b.textContent = w.w;
       tierWord.appendChild(b);
       // words decode strictly one after another, like a live transcription
-      var decodeMs = 60 + Math.max(w.ipa.length, w.w.length) * 8;
+      var decodeMs = 100 + Math.max(w.ipa.length, w.w.length) * 16;
       [a, b].forEach(function (el) {
         el.addEventListener('click', function (e) { e.stopPropagation(); playSpan(idx); });
         el.style.animationDelay = decodeSeq.toFixed(2) + 's';
