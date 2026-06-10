@@ -64,6 +64,12 @@
     position: absolute; top: 0; height: 556px; width: 1px;
     background: #a3461f; pointer-events: none; z-index: 4; display: none;
   }
+  #selbox {
+    position: absolute; top: 0; height: 556px; display: none;
+    background: rgba(163,70,31,.12);
+    border-left: 1px solid #a3461f; border-right: 1px solid #a3461f;
+    pointer-events: none; z-index: 3;
+  }
   #dragtip {
     position: fixed; display: none; z-index: 20;
     background: #221d15; color: #fff; font-size: 12px;
@@ -79,7 +85,7 @@
   <button id="save" class="primary">Save to site</button>
   <a href="/scripts/tobi-guide.html" target="_blank" style="font-size:13px;">ToBI guide ↗</a>
   <span id="status">decoding audio…</span>
-  <span class="help">Drag the blue lines to move word boundaries (shared boundaries move together). <b>Double-click a shared boundary to split it</b> and open a gap (silence) between the words; drag two edges back together to re-join them. <b>ToBI lane:</b> drag a label to move it, double-click it to relabel (empty = delete), double-click empty lane space to add one. Click a word box to hear just that word. Click the spectrogram to seek. Save writes straight into assets/speech-data.js — then refresh the main site.</span>
+  <span class="help">Drag the blue lines to move word boundaries (shared boundaries move together). <b>Double-click a shared boundary to split it</b> and open a gap (silence) between the words; drag two edges back together to re-join them. <b>ToBI lane:</b> drag a label to move it, double-click it to relabel (empty = delete), double-click empty lane space to add one. Click a word box to hear just that word. Click the spectrogram to seek; <b>drag on it to select a span</b> — it plays on release and space replays it (click to clear). Save writes straight into assets/speech-data.js — then refresh the main site.</span>
 </header>
 <div id="scroll">
   <div id="stage">
@@ -87,6 +93,7 @@
     <div class="lane tobi" id="lane-tobi"></div>
     <div class="lane ipa" id="lane-ipa"></div>
     <div class="lane word" id="lane-word"></div>
+    <div id="selbox"></div>
     <div id="cursor"></div>
   </div>
 </div>
@@ -149,6 +156,29 @@
     // place analysis frames at their true times: frame f is centered at t0 + f*tStep
     var dt = D.spec.tStep, ft0 = D.spec.t0;
     ctx.drawImage(off, t2x(ft0 - dt / 2), 0, nF * dt * PPS, SPEC_H);
+    // pitch contour over its own 75-500 Hz scale (full spectrogram height)
+    if (D.pitch && D.pitch.length) {
+      var prr = D.pitchRange || [75, 500], prSpan = prr[1] - prr[0];
+      ctx.strokeStyle = '#c97144';
+      ctx.lineWidth = 2; ctx.lineJoin = 'round';
+      ctx.beginPath();
+      var prev = null;
+      for (var m = 0; m < D.pitch.length; m++) {
+        var pt = D.pitch[m];
+        var px = t2x(pt[0]);
+        var py = SPEC_H - (pt[1] - prr[0]) / prSpan * SPEC_H;
+        if (prev !== null && pt[0] - prev > 0.035) { ctx.stroke(); ctx.beginPath(); ctx.moveTo(px, py); }
+        else if (prev === null) ctx.moveTo(px, py);
+        else ctx.lineTo(px, py);
+        prev = pt[0];
+      }
+      ctx.stroke();
+      ctx.fillStyle = '#c97144'; ctx.font = '10px monospace';
+      [100, 200, 300, 400].forEach(function (hz) {
+        var hy = SPEC_H - (hz - prr[0]) / prSpan * SPEC_H;
+        ctx.fillText(hz + 'Hz', 4, hy + 3);
+      });
+    }
     ctx.font = '11px monospace'; ctx.fillStyle = '#999'; ctx.strokeStyle = '#bbb';
     for (var s = 0.5; s < dur; s += 0.5) {
       var sx = t2x(s);
@@ -209,6 +239,10 @@
     laneTobi.querySelectorAll('.tpt').forEach(function (m) {
       m.style.left = t2x(tobi[m.dataset.i].t) + 'px';
     });
+    if (selSpan) {
+      selbox.style.left = t2x(selSpan[0]) + 'px';
+      selbox.style.width = (t2x(selSpan[1]) - t2x(selSpan[0])) + 'px';
+    }
     words.forEach(function (w, idx) {
       ivEls[idx].forEach(function (el) {
         el.style.left = t2x(w.t0) + 'px';
@@ -385,6 +419,11 @@
       spanEnd = null;
       stopSrc();
       clearPlaying();
+    } else if (selSpan) {
+      // an active drag-selection owns the spacebar: replay just that span
+      cursor.style.display = 'block';
+      cursor.style.left = t2x(selSpan[0]) + 'px';
+      startPlayback(selSpan[0], selSpan[1]);
     } else {
       startPlayback(pausedAt);
     }
@@ -394,11 +433,52 @@
     if (e.code === 'Space') { e.preventDefault(); togglePlay(); }
   });
   canvas.addEventListener('click', function (e) {
+    if (sdragEnded) return; // a span-drag just finished
+    selSpan = null; selbox.style.display = 'none';
     var rect = stage.getBoundingClientRect();
     pausedAt = x2t(e.clientX - rect.left);
     cursor.style.display = 'block';
     cursor.style.left = t2x(pausedAt) + 'px';
     if (playing) startPlayback(pausedAt);
+  });
+
+  // drag on the spectrogram to select and play a custom span
+  var selbox = document.getElementById('selbox');
+  var sdrag = null, sdragEnded = false, selSpan = null;
+  canvas.addEventListener('mousedown', function (e) {
+    if (e.button !== 0) return;
+    var rect = stage.getBoundingClientRect();
+    sdrag = { x0: e.clientX - rect.left, active: false };
+  });
+  window.addEventListener('mousemove', function (e) {
+    if (!sdrag) return;
+    var rect = stage.getBoundingClientRect();
+    var x = e.clientX - rect.left;
+    if (!sdrag.active && Math.abs(x - sdrag.x0) > 4) sdrag.active = true;
+    if (sdrag.active) {
+      e.preventDefault();
+      var a = Math.max(0, Math.min(sdrag.x0, x));
+      var b = Math.min(W(), Math.max(sdrag.x0, x));
+      sdrag.a = a; sdrag.b = b;
+      selbox.style.display = 'block';
+      selbox.style.left = a + 'px';
+      selbox.style.width = (b - a) + 'px';
+    }
+  });
+  window.addEventListener('mouseup', function () {
+    if (!sdrag) return;
+    if (sdrag.active) {
+      sdragEnded = true;
+      setTimeout(function () { sdragEnded = false; }, 0); // outlive the click event
+      var tA = x2t(sdrag.a), tB = x2t(sdrag.b);
+      if (tB - tA > 0.02) {
+        selSpan = [tA, tB];
+        cursor.style.display = 'block';
+        cursor.style.left = t2x(tA) + 'px';
+        startPlayback(tA, tB);
+      }
+    }
+    sdrag = null;
   });
 
   function tick() {
