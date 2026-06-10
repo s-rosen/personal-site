@@ -102,6 +102,27 @@ for t in np.arange(0.02, dur - 0.02, 0.01):
         f0.append([round(float(t), 3), int(round(v))])
 print(f"pitch points: {len(f0)}")
 
+# Despike: the plain AC tracker occasionally reads stop bursts/aspiration as
+# short ~2x-octave voiced islands (Praat's filtered AC suppresses these).
+# Drop points further than 0.45 octaves from their local +-70 ms median.
+import statistics
+removed = 0
+changed = True
+while changed:  # iterate: an island's own points dominate its first-pass median
+    changed = False
+    clean = []
+    for t, f in f0:
+        neigh = [g for (u, g) in f0 if abs(u - t) <= 0.075 and u != t]
+        if len(neigh) >= 3:
+            med = statistics.median(neigh)
+            if abs(math.log2(f / med)) > 0.45:
+                changed = True
+                removed += 1
+                continue
+        clean.append([t, f])
+    f0 = clean
+print(f"despiked: removed {removed} octave-error points")
+
 # ---------- word alignment ----------
 # Hand-corrected boundaries (from scripts/align-editor.html) live in the
 # existing JSON; NEVER overwrite them with whisper output. Whisper only

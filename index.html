@@ -781,6 +781,19 @@
       }
     }
 
+    // The media clock only updates every ~20 ms; interpolate between updates
+    // with the wall clock so the cursor and autoscroll move at display rate.
+    var lastMediaT = -1, lastWall = 0, lastShown = 0;
+    function playbackPos(now) {
+      var ct = audio.currentTime;
+      if (ct !== lastMediaT) { lastMediaT = ct; lastWall = now; }
+      var est = Math.min(dur, ct + (now - lastWall) / 1000);
+      // hold through small resync regressions; accept real jumps (seeks)
+      if (est < lastShown && lastShown - est < 0.05) est = lastShown;
+      lastShown = est;
+      return est;
+    }
+
     var running = false, lastT = null;
     function loop(now) {
       if (lastT === null) lastT = now;
@@ -788,9 +801,10 @@
       if (wipe < 1) { wipe = Math.min(1, wipe + dt / 1100); draw(); }
       var playing = !audio.paused && !audio.ended;
       if (playing) {
-        setCursor(audio.currentTime); highlight(audio.currentTime);
+        var t = playbackPos(now);
+        setCursor(t); highlight(t);
         // keep the playhead centered; cached widths so this loop does no layout reads
-        body.scrollLeft = audio.currentTime / dur * cachedInnerW - cachedBodyW * 0.5;
+        body.scrollLeft = t / dur * cachedInnerW - cachedBodyW * 0.5;
       }
       if (wipe < 1 || playing) requestAnimationFrame(loop);
       else { running = false; lastT = null; }
@@ -804,6 +818,7 @@
     });
     audio.addEventListener('play', function () {
       btn.textContent = '❙❙'; btn.setAttribute('aria-label', 'Pause voice sample');
+      lastMediaT = -1; lastShown = 0;
       ensureLoop();
     });
     audio.addEventListener('pause', function () {
@@ -818,6 +833,7 @@
       var rect = inner.getBoundingClientRect();
       var t = Math.max(0, Math.min(dur - 0.05, (e.clientX - rect.left) / rect.width * dur));
       try { audio.currentTime = t; } catch (err) {}
+      lastMediaT = -1; lastShown = t;
       setCursor(t); highlight(t);
     });
     window.addEventListener('resize', function () { requestAnimationFrame(draw); });
