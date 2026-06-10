@@ -188,6 +188,7 @@
   .praat-cursor {
     position: absolute; top: 0; bottom: 0; left: 0; width: 1px;
     background: var(--rust); pointer-events: none; opacity: 0;
+    will-change: transform;
   }
   .praat-cap {
     padding: 10px 16px;
@@ -655,6 +656,19 @@
       ivs.push({ t0: w.t0, t1: w.t1, els: [a, b] });
     });
 
+    // zoom level: enough px/s that every tier label fits its interval un-clipped
+    var measure = document.createElement('canvas').getContext('2d');
+    function minPPS() {
+      var fs = tierIpa.firstChild ? parseFloat(getComputedStyle(tierIpa.firstChild).fontSize) : 10.5;
+      measure.font = fs + 'px "IBM Plex Mono", monospace';
+      var need = 160;
+      D.words.forEach(function (w) {
+        var tw = Math.max(measure.measureText(w.ipa).width, measure.measureText(w.w).width);
+        need = Math.max(need, (tw + 14) / (w.t1 - w.t0));
+      });
+      return Math.min(need, 560);
+    }
+
     function cssVar(name) { return getComputedStyle(document.body).getPropertyValue(name).trim(); }
     function hexRgb(h) {
       h = h.replace('#', '');
@@ -683,11 +697,12 @@
     var wipe = reduced ? 1 : 0;
     function ease(t) { return t <= 0 ? 0 : t >= 1 ? 1 : 1 - Math.pow(1 - t, 3); }
 
+    var cachedInnerW = 0, cachedBodyW = 0;
     function draw() {
       var dpr = window.devicePixelRatio || 1;
-      // keep at least 160 px per second so short words stay readable; scrolls if wider than the card
-      var innerW = Math.max(body.clientWidth, Math.ceil(dur * 160));
+      var innerW = Math.max(body.clientWidth, Math.ceil(dur * minPPS()));
       if (inner.style.width !== innerW + 'px') inner.style.width = innerW + 'px';
+      cachedInnerW = innerW; cachedBodyW = body.clientWidth;
       var W = innerW, H = canvas.clientHeight;
       if (canvas.width !== Math.round(W * dpr) || canvas.height !== Math.round(H * dpr)) {
         canvas.width = Math.round(W * dpr); canvas.height = Math.round(H * dpr);
@@ -751,10 +766,12 @@
       var cs = Math.floor(t * 10) % 10;
       return '0:0' + Math.floor(t) + '.' + cs;
     }
+    var lastTimeStr = '';
     function setCursor(t) {
       cursor.style.opacity = 1;
-      cursor.style.left = (t / dur * 100) + '%';
-      timeEl.textContent = fmtTime(t) + ' / ' + fmtTime(dur);
+      cursor.style.transform = 'translateX(' + (t / dur * cachedInnerW) + 'px)';
+      var s = fmtTime(t) + ' / ' + fmtTime(dur);
+      if (s !== lastTimeStr) { lastTimeStr = s; timeEl.textContent = s; }
     }
     function highlight(t) {
       for (var i = 0; i < ivs.length; i++) {
@@ -772,9 +789,8 @@
       var playing = !audio.paused && !audio.ended;
       if (playing) {
         setCursor(audio.currentTime); highlight(audio.currentTime);
-        // keep the playhead in view
-        var cx = audio.currentTime / dur * inner.clientWidth;
-        body.scrollLeft = cx - body.clientWidth * 0.5;
+        // keep the playhead centered; cached widths so this loop does no layout reads
+        body.scrollLeft = audio.currentTime / dur * cachedInnerW - cachedBodyW * 0.5;
       }
       if (wipe < 1 || playing) requestAnimationFrame(loop);
       else { running = false; lastT = null; }
@@ -812,6 +828,8 @@
     buildOffscreen();
     draw();
     if (!reduced) setTimeout(ensureLoop, 650); // wipe-in after hero settles
+    // label widths change once the mono webfont arrives; recompute the zoom then
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { draw(); });
   }
 })();
 </script>
