@@ -46,6 +46,20 @@ Disagreements:
    low accents. The hand L* is supported by a below-interpolation dip to 90 Hz
    on stressed AY-. Keep.
 
+## Resolution (relisten, same day)
+
+1. **"I'm" accepted as prominent** — relabeled the IP2 opening as `L*+H` on
+   "I'm" (low star, rise) with the trailing H realized on "a"; "linguist"
+   therefore simplifies from `H+!H*` to `!H*`. Encodes the transcriber's
+   perceived levels: I'm 1↗3, a 3, linguist 2.
+2. **"speech" accepted as accented** — `!H*`, a downstep below synthetic's
+   `L+H*` (vowel ~105–116 Hz, well above the range floor), nuclear in IP2.
+3. **"agents" `L*` retained** — the model's miss is its known blind spot for
+   low accents.
+
+Final tier: 19 events. Both adopted changes were corroborated by Wav2ToBI's
+prominence detections (2.04 s, 5.88 s).
+
 ## Calibration context
 
 Human inter-transcriber agreement on ToBI: ~80% accent presence, 60–70%
