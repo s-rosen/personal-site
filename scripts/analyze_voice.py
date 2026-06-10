@@ -49,27 +49,31 @@ IPA = [
     ("reliable", "ɹɪˈlaɪəbəl"),
 ]
 
-# Draft ToBI tones tier: (word index, label, anchor). Anchors resolve against
-# the current pitch track + word boundaries on every run: "peak" = time of the
-# word's F0 maximum, "low" = F0 minimum, "end" = word offset (boundary tones).
-# Hand-tune labels here; times stay glued to the data.
+# ToBI tones tier: (word index, label, anchor[, w0, w1]). Anchors resolve
+# against the current pitch track + word boundaries on every run:
+#   "peak"/"low" = time of F0 max/min within the word (optionally windowed to
+#   the w0..w1 fraction of the word, to pin stars to the stressed syllable),
+#   "end" = word offset (boundary tones), float = fixed fraction of the word.
+# Labels audited against full traces 2026-06-10. F0 onset overshoot after
+# voiceless obstruents (solving /s/, synthetic /th/) treated as segmental
+# perturbation, not pitch accents. Hand-tune labels here; times follow data.
 TOBI = [
-    (0,  "H*",   "peak"),  # Hi — rise to 144 Hz
-    (2,  "!H*",  "peak"),  # Simon — downstepped from Hi
-    (3,  "L*",   "low"),   # Rosen — low accent...
-    (3,  "L-H%", "end"),   # ...with continuation rise (94->116) before pause
-    (6,  "H*",   "peak"),  # linguist
-    (9,  "H*",   "peak"),  # interested
-    (11, "!H*",  "peak"),  # solving
-    (13, "L+H*", "peak"),  # uncanny — focal rise-fall, peak on /kae/
-    (14, "!H*",  "peak"),  # valley — post-focal downstep
-    (16, "H*",   "peak"),  # synthetic
-    (17, "H*",   "peak"),  # speech
-    (17, "L-L%", "end"),   # phrase-final fall before 647 ms pause
-    (19, "H*",   "peak"),  # making
-    (21, "!H*",  "peak"),  # voice
-    (24, "H*",   "peak"),  # reliable — nuclear accent
-    (24, "L-L%", "end"),   # final declarative fall
+    (0,  "L+H*",  "peak"),           # Hi — dip then +3.7st rise, late peak
+    (2,  "!H*",   "peak"),           # Simon — downstepped after L+H*
+    (3,  "L*",    "low", 0.0, 0.5),  # Rosen — low star on RO-
+    (3,  "L-H%",  "end"),            # continuation rise (94->116) before pause
+    (6,  "H+!H*", 0.15),             # linguist — fall from high on "a" onto LING-
+    (9,  "L*+H",  "low", 0.0, 0.4),  # interested — low IN-, trailing rise to 134
+    (13, "L+H*",  "peak"),           # uncanny — focal rise, peak on /kae/
+    (14, "!H*",   "peak"),           # valley — post-focal downstep
+    (16, "!H*",   0.62),             # synthetic — terraced ~108 on THET (122 = /th/ overshoot)
+    (17, "H*",    "peak"),           # speech — 138 on the vowel, nuclear in IP2
+    (17, "L-L%",  "end"),            # phrase-final fall before 647 ms pause
+    (18, "%H",    "peak"),           # and — IP3 opens high (138) on a function word
+    (19, "L+H*",  "peak"),           # making — +4.7st rise through MAK-
+    (21, "!H*",   "peak"),           # voice — stepped down from making's 140
+    (24, "L+!H*", "peak"),           # reliable — rise from low re-, downstepped peak
+    (24, "L-L%",  "end"),            # final declarative fall
 ]
 
 snd = parselmouth.Sound(str(WAV))
@@ -189,14 +193,20 @@ if words is None:
 
 # ---------- ToBI tier (times resolved from anchors) ----------
 tobi = []
-for idx, label, anchor in TOBI:
+for entry in TOBI:
+    idx, label, anchor = entry[0], entry[1], entry[2]
     w = words[idx]
-    if anchor == "end":
+    span = w["t1"] - w["t0"]
+    if isinstance(anchor, float):
+        t = w["t0"] + anchor * span
+    elif anchor == "end":
         t = w["t1"]
     else:
-        pts = [p for p in f0 if w["t0"] <= p[0] <= w["t1"]]
+        w0, w1 = (entry[3], entry[4]) if len(entry) == 5 else (0.0, 1.0)
+        lo, hi = w["t0"] + w0 * span, w["t0"] + w1 * span
+        pts = [p for p in f0 if lo <= p[0] <= hi]
         if not pts:
-            t = (w["t0"] + w["t1"]) / 2
+            t = (lo + hi) / 2
         elif anchor == "low":
             t = min(pts, key=lambda p: p[1])[0]
         else:  # peak
