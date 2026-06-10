@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Boundary editor — voice sample</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: "Segoe UI", system-ui, sans-serif; background: #f5f2ea; color: #221d15; font-size: 14px; }
+  header {
+    position: sticky; top: 0; z-index: 10;
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 18px; background: #fff; border-bottom: 1px solid #ddd;
+    flex-wrap: wrap;
+  }
+  button {
+    padding: 8px 16px; border: 1px solid #bbb; background: #fff;
+    border-radius: 6px; cursor: pointer; font-size: 13px;
+  }
+  button:hover { border-color: #a3461f; color: #a3461f; }
+  button.primary { background: #a3461f; color: #fff; border-color: #a3461f; }
+  button.primary:hover { background: #c4744a; color: #fff; }
+  #status { color: #777; font-size: 12.5px; }
+  .help { width: 100%; color: #888; font-size: 12px; }
+  #scroll { overflow-x: auto; padding-bottom: 14px; }
+  #stage { position: relative; height: 520px; margin: 14px 0 0; }
+  canvas { display: block; position: absolute; top: 0; left: 0; }
+  .lane { position: absolute; left: 0; right: 0; border-top: 1px solid #d7d2c4; background: #fffdf7; }
+  .lane.ipa  { top: 400px; height: 56px; }
+  .lane.word { top: 456px; height: 56px; }
+  .iv {
+    position: absolute; top: 0; bottom: 0;
+    display: flex; align-items: center; justify-content: center;
+    overflow: hidden; white-space: nowrap; cursor: pointer;
+    font-size: 13px; color: #444;
+  }
+  .iv:hover { background: rgba(163,70,31,.08); }
+  .iv.playing { background: rgba(163,70,31,.18); }
+  .bnd {
+    position: absolute; top: 0; height: 520px; width: 11px;
+    margin-left: -5px; cursor: ew-resize; z-index: 5;
+  }
+  .bnd::after {
+    content: ""; position: absolute; left: 5px; top: 0; bottom: 0;
+    width: 1px; background: #1668c8;
+  }
+  .bnd:hover::after, .bnd.drag::after { width: 3px; left: 4px; background: #0d4f9e; }
+  #cursor {
+    position: absolute; top: 0; height: 520px; width: 1px;
+    background: #a3461f; pointer-events: none; z-index: 4; display: none;
+  }
+  #dragtip {
+    position: fixed; display: none; z-index: 20;
+    background: #221d15; color: #fff; font-size: 12px;
+    padding: 3px 8px; border-radius: 4px; pointer-events: none;
+  }
+</style>
+</head>
+<body>
+<header>
+  <button id="play">▶ Play (space)</button>
+  <button id="zout">− zoom</button>
+  <button id="zin">+ zoom</button>
+  <button id="save" class="primary">Save to site</button>
+  <span id="status">loaded</span>
+  <span class="help">Drag the blue lines to move word boundaries (shared boundaries move together). Click a word box to hear just that word. Click the spectrogram to seek. Save writes straight into assets/speech-data.js — then refresh the main site.</span>
+</header>
+<div id="scroll">
+  <div id="stage">
+    <canvas id="spec"></canvas>
+    <div class="lane ipa" id="lane-ipa"></div>
+    <div class="lane word" id="lane-word"></div>
+    <div id="cursor"></div>
+  </div>
+</div>
+<div id="dragtip"></div>
+<audio id="audio" src="/assets/voice-intro.m4a" preload="auto"></audio>
+<script src="/assets/speech-data.js"></script>
+<script>
+(function () {
+  var D = window.SPEECH_DATA;
+  var dur = D.duration;
+  var words = D.words.map(function (w) { return { w: w.w, ipa: w.ipa, t0: w.t0, t1: w.t1 }; });
+  var PPS = 320;
+  var SPEC_H = 400;
+
+  var stage = document.getElementById('stage');
+  var scroll = document.getElementById('scroll');
+  var canvas = document.getElementById('spec');
+  var cursor = document.getElementById('cursor');
+  var audio = document.getElementById('audio');
+  var status = document.getElementById('status');
+  var dragtip = document.getElementById('dragtip');
+  var laneIpa = document.getElementById('lane-ipa');
+  var laneWord = document.getElementById('lane-word');
+
+  // decode spectrogram
+  var raw = atob(D.spec.b64);
+  var nF = D.spec.frames, nB = D.spec.bins;
+  var vals = new Uint8Array(raw.length);
+  for (var i = 0; i < raw.length; i++) vals[i] = raw.charCodeAt(i);
+  var off = document.createElement('canvas');
+  off.width = nF; off.height = nB;
+  (function () {
+    var octx = off.getContext('2d');
+    var img = octx.createImageData(nF, nB);
+    for (var f = 0; f < nF; f++) {
+      for (var b = 0; b < nB; b++) {
+        var v = vals[f * nB + b] / 255;
+        var p = ((nB - 1 - b) * nF + f) * 4;
+        img.data[p] = 34; img.data[p + 1] = 29; img.data[p + 2] = 21;
+        img.data[p + 3] = Math.pow(v, 1.25) * 255;
+      }
+    }
+    octx.putImageData(img, 0, 0);
+  })();
+
+  function W() { return Math.ceil(dur * PPS); }
+  function x2t(x) { return Math.max(0, Math.min(dur, x / PPS)); }
+  function t2x(t) { return t * PPS; }
+
+  function renderSpec() {
+    var w = W();
+    stage.style.width = w + 'px';
+    canvas.width = w; canvas.height = SPEC_H;
+    canvas.style.width = w + 'px'; canvas.style.height = SPEC_H + 'px';
+    var ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#fffdf7';
+    ctx.fillRect(0, 0, w, SPEC_H);
+    ctx.imageSmoothingEnabled = true;
+    ctx.drawImage(off, 0, 0, w, SPEC_H);
+    ctx.font = '11px monospace'; ctx.fillStyle = '#999'; ctx.strokeStyle = '#bbb';
+    for (var s = 0.5; s < dur; s += 0.5) {
+      var sx = t2x(s);
+      ctx.beginPath(); ctx.moveTo(sx, SPEC_H); ctx.lineTo(sx, SPEC_H - (s % 1 ? 6 : 12)); ctx.stroke();
+      if (s % 1 === 0) ctx.fillText(s + 's', sx + 3, SPEC_H - 6);
+    }
+  }
+
+  var ivEls = [];
+  function renderWords() {
+    laneIpa.innerHTML = ''; laneWord.innerHTML = '';
+    document.querySelectorAll('.bnd').forEach(function (e) { e.remove(); });
+    ivEls = [];
+    words.forEach(function (w, idx) {
+      var pair = [];
+      [[laneIpa, w.ipa], [laneWord, w.w]].forEach(function (spec) {
+        var el = document.createElement('div');
+        el.className = 'iv';
+        el.style.left = t2x(w.t0) + 'px';
+        el.style.width = (t2x(w.t1) - t2x(w.t0)) + 'px';
+        el.textContent = spec[1];
+        el.title = spec[1] + '  [' + w.t0.toFixed(3) + ' – ' + w.t1.toFixed(3) + ']';
+        el.addEventListener('click', function (ev) { ev.stopPropagation(); playSpan(idx); });
+        spec[0].appendChild(el);
+        pair.push(el);
+      });
+      ivEls.push(pair);
+      ['t0', 't1'].forEach(function (side) {
+        var h = document.createElement('div');
+        h.className = 'bnd';
+        h.style.left = t2x(w[side]) + 'px';
+        h.dataset.idx = idx; h.dataset.side = side;
+        stage.appendChild(h);
+      });
+    });
+  }
+
+  function refreshPositions() {
+    var k = 0;
+    document.querySelectorAll('.bnd').forEach(function (h) {
+      var w = words[h.dataset.idx];
+      h.style.left = t2x(w[h.dataset.side]) + 'px';
+    });
+    words.forEach(function (w, idx) {
+      ivEls[idx].forEach(function (el) {
+        el.style.left = t2x(w.t0) + 'px';
+        el.style.width = (t2x(w.t1) - t2x(w.t0)) + 'px';
+        el.title = el.textContent + '  [' + w.t0.toFixed(3) + ' – ' + w.t1.toFixed(3) + ']';
+      });
+    });
+  }
+
+  // ---------- dragging ----------
+  var drag = null;
+  stage.addEventListener('mousedown', function (e) {
+    if (!e.target.classList.contains('bnd')) return;
+    e.preventDefault();
+    var idx = +e.target.dataset.idx, side = e.target.dataset.side;
+    var t = words[idx][side];
+    // collect all edges sharing this time (linked boundaries move together)
+    var edges = [];
+    words.forEach(function (w, i) {
+      ['t0', 't1'].forEach(function (s) {
+        if (Math.abs(w[s] - t) < 0.006) edges.push([i, s]);
+      });
+    });
+    // movement limits: keep every touched word at least 20 ms wide
+    var lo = 0, hi = dur;
+    edges.forEach(function (ed) {
+      var w = words[ed[0]];
+      if (ed[1] === 't0') hi = Math.min(hi, w.t1 - 0.02);
+      else lo = Math.max(lo, w.t0 + 0.02);
+    });
+    drag = { edges: edges, lo: lo, hi: hi, el: e.target };
+    e.target.classList.add('drag');
+  });
+  window.addEventListener('mousemove', function (e) {
+    if (!drag) return;
+    var rect = stage.getBoundingClientRect();
+    var t = Math.max(drag.lo, Math.min(drag.hi, x2t(e.clientX - rect.left)));
+    drag.edges.forEach(function (ed) { words[ed[0]][ed[1]] = Math.round(t * 1000) / 1000; });
+    refreshPositions();
+    dragtip.style.display = 'block';
+    dragtip.style.left = (e.clientX + 12) + 'px';
+    dragtip.style.top = (e.clientY - 28) + 'px';
+    dragtip.textContent = t.toFixed(3) + ' s';
+    dirty();
+  });
+  window.addEventListener('mouseup', function () {
+    if (drag) { drag.el.classList.remove('drag'); drag = null; dragtip.style.display = 'none'; }
+  });
+
+  // ---------- playback ----------
+  var stopAt = null;
+  function playSpan(idx) {
+    var w = words[idx];
+    audio.currentTime = Math.max(0, w.t0 - 0.01);
+    stopAt = w.t1 + 0.01;
+    ivEls.forEach(function (p) { p.forEach(function (el) { el.classList.remove('playing'); }); });
+    ivEls[idx].forEach(function (el) { el.classList.add('playing'); });
+    audio.play();
+  }
+  audio.addEventListener('timeupdate', function () {
+    if (stopAt !== null && audio.currentTime >= stopAt) {
+      audio.pause(); stopAt = null;
+      ivEls.forEach(function (p) { p.forEach(function (el) { el.classList.remove('playing'); }); });
+    }
+  });
+  function tick() {
+    if (!audio.paused && !audio.ended) {
+      cursor.style.display = 'block';
+      cursor.style.left = t2x(audio.currentTime) + 'px';
+    }
+    requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+
+  var playBtn = document.getElementById('play');
+  function togglePlay() {
+    stopAt = null;
+    if (audio.paused || audio.ended) audio.play(); else audio.pause();
+  }
+  playBtn.addEventListener('click', togglePlay);
+  audio.addEventListener('play', function () { playBtn.textContent = '❚❚ Pause (space)'; });
+  audio.addEventListener('pause', function () { playBtn.textContent = '▶ Play (space)'; });
+  window.addEventListener('keydown', function (e) {
+    if (e.code === 'Space') { e.preventDefault(); togglePlay(); }
+  });
+  canvas.addEventListener('click', function (e) {
+    var rect = stage.getBoundingClientRect();
+    audio.currentTime = x2t(e.clientX - rect.left);
+    cursor.style.display = 'block';
+    cursor.style.left = t2x(audio.currentTime) + 'px';
+  });
+
+  // ---------- zoom ----------
+  document.getElementById('zin').addEventListener('click', function () { setZoom(PPS * 1.4); });
+  document.getElementById('zout').addEventListener('click', function () { setZoom(PPS / 1.4); });
+  function setZoom(p) {
+    var midT = x2t(scroll.scrollLeft + scroll.clientWidth / 2);
+    PPS = Math.max(100, Math.min(900, p));
+    renderSpec(); refreshPositions();
+    scroll.scrollLeft = t2x(midT) - scroll.clientWidth / 2;
+  }
+
+  // ---------- save ----------
+  var unsaved = false;
+  function dirty() { unsaved = true; status.textContent = 'unsaved changes'; }
+  document.getElementById('save').addEventListener('click', function () {
+    fetch('/save', { method: 'POST', body: JSON.stringify(words) })
+      .then(function (r) { return r.json(); })
+      .then(function () { unsaved = false; status.textContent = 'saved ✓ — refresh the main site to see it'; })
+      .catch(function (e) { status.textContent = 'save failed: ' + e; });
+  });
+  window.addEventListener('beforeunload', function (e) {
+    if (unsaved) { e.preventDefault(); e.returnValue = ''; }
+  });
+
+  renderSpec();
+  renderWords();
+})();
+</script>
+</body>
+</html>
