@@ -217,6 +217,12 @@
     background: var(--rust); pointer-events: none; opacity: 0;
     will-change: transform;
   }
+  .praat-sel {
+    position: absolute; top: 0; bottom: 0; display: none;
+    background: color-mix(in srgb, var(--rust) 12%, transparent);
+    border-left: 1px solid var(--rust); border-right: 1px solid var(--rust);
+    pointer-events: none;
+  }
   .praat-cap {
     padding: 10px 16px;
     border-top: 1px solid var(--rule-soft);
@@ -471,10 +477,11 @@
         <div class="tier tier-pts" id="tier-tobi" aria-hidden="true"></div>
         <div class="tier" id="tier-ipa" aria-hidden="true"></div>
         <div class="tier" id="tier-word" aria-hidden="true"></div>
+        <div class="praat-sel" id="praat-sel"></div>
         <div class="praat-cursor" id="praat-cursor"></div>
       </div>
     </div>
-    <figcaption class="praat-cap">Broadband spectrogram, 0–5 kHz · formants F1–F4 · pitch contour (75–500 Hz) · ToBI, IPA, and word tiers · click a word to hear it</figcaption>
+    <figcaption class="praat-cap">Broadband spectrogram, 0–5 kHz · formants F1–F4 · pitch contour (75–500 Hz) · ToBI, IPA, and word tiers · click a word or drag a span to hear it</figcaption>
   </figure>
   <audio id="voice-audio" src="assets/voice-intro.m4a" preload="metadata"></audio>
 </header>
@@ -700,6 +707,7 @@
       }, delayMs);
     }
     var decodeSeq = 0.8; // seconds; each word's decode starts when the previous ends
+    var wordDecodeStart = [];
     D.words.forEach(function (w, idx) {
       var l = (w.t0 / dur * 100) + '%', wd = ((w.t1 - w.t0) / dur * 100) + '%';
       var a = document.createElement('span');
@@ -709,25 +717,56 @@
       b.className = 'iv'; b.style.left = l; b.style.width = wd; b.textContent = w.w;
       tierWord.appendChild(b);
       // words decode strictly one after another, like a live transcription
-      var decodeMs = 100 + Math.max(w.ipa.length, w.w.length) * 16;
+      wordDecodeStart.push(decodeSeq);
+      var decodeMs = 70 + Math.max(w.ipa.length, w.w.length) * 11;
       [a, b].forEach(function (el) {
-        el.addEventListener('click', function (e) { e.stopPropagation(); playSpan(idx); });
+        el.addEventListener('click', function (e) {
+          e.stopPropagation();
+          if (dragEnded) return; // a drag-selection just finished on top of this box
+          playSpan(idx);
+        });
         el.style.animationDelay = decodeSeq.toFixed(2) + 's';
       });
       scramble(a, w.ipa, decodeSeq * 1000, IPA_POOL, decodeMs);
       scramble(b, w.w, decodeSeq * 1000, WORD_POOL, decodeMs);
-      decodeSeq += decodeMs / 1000 + 0.025;
+      decodeSeq += decodeMs / 1000 + 0.018;
       ivs.push({ t0: w.t0, t1: w.t1, els: [a, b] });
     });
+    // ToBI labels "predict" right after their word decodes: flicker through
+    // candidate tone hypotheses, then lock on the answer
+    var TOBI_POOL = ['H*', 'L*', 'L+H*', 'L*+H', '!H*', 'H+!H*', 'L+!H*', 'H-', 'L-', 'L-L%', 'L-H%', 'H-H%', '%H'];
+    function flicker(el, finalText, delayMs) {
+      if (reduced) return;
+      setTimeout(function () {
+        var start = null, lastSwap = 0;
+        function frame(now) {
+          if (start === null) { start = now; lastSwap = -100; }
+          if (now - start >= 480) { el.textContent = finalText; return; }
+          if (now - lastSwap > 55) {
+            lastSwap = now;
+            el.textContent = TOBI_POOL[(Math.random() * TOBI_POOL.length) | 0];
+          }
+          requestAnimationFrame(frame);
+        }
+        requestAnimationFrame(frame);
+      }, delayMs);
+    }
     var tierTobi = document.getElementById('tier-tobi');
     (D.tobi || []).forEach(function (ev) {
       var p = document.createElement('span');
       p.className = 'pt';
       p.style.left = (ev[0] / dur * 100) + '%';
-      p.style.animationDelay = (1.25 + ev[0] / dur * 0.5).toFixed(2) + 's';
+      // sync to the word the event belongs to
+      var wi = 0;
+      for (var k = 0; k < D.words.length; k++) {
+        if (ev[0] >= D.words[k].t0 - 0.01 && ev[0] <= D.words[k].t1 + 0.01) { wi = k; break; }
+      }
+      var tDelay = (wordDecodeStart[wi] || 0.8) + 0.12;
+      p.style.animationDelay = tDelay.toFixed(2) + 's';
       var tick = document.createElement('i');
       var lab = document.createElement('span');
       lab.textContent = ev[1];
+      flicker(lab, ev[1], tDelay * 1000);
       p.appendChild(tick); p.appendChild(lab);
       tierTobi.appendChild(p);
     });
@@ -1059,6 +1098,8 @@
       highlight(-1); cursor.style.opacity = 0; timeEl.textContent = '';
     });
     body.addEventListener('click', function (e) {
+      if (dragEnded) return; // drag-selection handled on mouseup
+      sel.style.display = 'none';
       var rect = inner.getBoundingClientRect();
       var t = Math.max(0, Math.min(dur - 0.05, (e.clientX - rect.left) / rect.width * dur));
       pausedAt = t;
@@ -1070,6 +1111,43 @@
       }
       segEnd = null;
       setCursor(t); highlight(t);
+    });
+
+    // drag a span on the figure to select and play it (Praat-style selection)
+    var sel = document.getElementById('praat-sel');
+    var dragSel = null, dragEnded = false;
+    function innerX(e) { return e.clientX - inner.getBoundingClientRect().left; }
+    body.addEventListener('mousedown', function (e) {
+      if (e.button !== 0) return;
+      dragSel = { x0: innerX(e), active: false };
+    });
+    window.addEventListener('mousemove', function (e) {
+      if (!dragSel) return;
+      var x = innerX(e);
+      if (!dragSel.active && Math.abs(x - dragSel.x0) > 4) dragSel.active = true;
+      if (dragSel.active) {
+        e.preventDefault();
+        var a = Math.max(0, Math.min(dragSel.x0, x));
+        var b = Math.min(cachedInnerW, Math.max(dragSel.x0, x));
+        dragSel.a = a; dragSel.b = b;
+        sel.style.display = 'block';
+        sel.style.left = a + 'px';
+        sel.style.width = (b - a) + 'px';
+      }
+    });
+    window.addEventListener('mouseup', function () {
+      if (!dragSel) return;
+      if (dragSel.active) {
+        dragEnded = true;
+        setTimeout(function () { dragEnded = false; }, 0); // outlive the click event
+        var tA = dragSel.a / cachedInnerW * dur;
+        var tB = dragSel.b / cachedInnerW * dur;
+        if (tB - tA > 0.02) {
+          setCursor(tA); highlight(tA);
+          pPlay(tA, tB);
+        }
+      }
+      dragSel = null;
     });
     window.addEventListener('resize', function () { requestAnimationFrame(draw); });
     document.getElementById('theme-toggle').addEventListener('click', function () {
