@@ -8,7 +8,6 @@ and regenerates assets/speech-data.js (what the site loads).
 """
 import json
 import http.server
-import socketserver
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -39,7 +38,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         self.wfile.write(b'{"ok":true}')
 
 
-socketserver.TCPServer.allow_reuse_address = True
-with socketserver.TCPServer(("127.0.0.1", PORT), Handler) as srv:
+# Threading is required: browsers hold keep-alive connections (esp. for the
+# audio element), which deadlocks a single-threaded server.
+with http.server.ThreadingHTTPServer(("127.0.0.1", PORT), Handler) as srv:
     print(f"editor: http://localhost:{PORT}/scripts/align-editor.html")
     srv.serve_forever()
