@@ -61,7 +61,7 @@
   <button id="zout">− zoom</button>
   <button id="zin">+ zoom</button>
   <button id="save" class="primary">Save to site</button>
-  <span id="status">loaded</span>
+  <span id="status">decoding audio…</span>
   <span class="help">Drag the blue lines to move word boundaries (shared boundaries move together). <b>Double-click a shared boundary to split it</b> and open a gap (silence) between the words; drag two edges back together to re-join them. Click a word box to hear just that word. Click the spectrogram to seek. Save writes straight into assets/speech-data.js — then refresh the main site.</span>
 </header>
 <div id="scroll">
@@ -73,8 +73,6 @@
   </div>
 </div>
 <div id="dragtip"></div>
-<!-- WAV, not m4a: sample-exact seeking on the same timeline the spectrogram was computed from -->
-<audio id="audio" src="/assets/voice-intro.wav" preload="auto"></audio>
 <script src="/assets/speech-data.js"></script>
 <script>
 (function () {
@@ -88,11 +86,11 @@
   var scroll = document.getElementById('scroll');
   var canvas = document.getElementById('spec');
   var cursor = document.getElementById('cursor');
-  var audio = document.getElementById('audio');
   var status = document.getElementById('status');
   var dragtip = document.getElementById('dragtip');
   var laneIpa = document.getElementById('lane-ipa');
   var laneWord = document.getElementById('lane-word');
+  var playBtn = document.getElementById('play');
 
   // decode spectrogram
   var raw = atob(D.spec.b64);
@@ -128,7 +126,9 @@
     ctx.fillStyle = '#fffdf7';
     ctx.fillRect(0, 0, w, SPEC_H);
     ctx.imageSmoothingEnabled = true;
-    ctx.drawImage(off, 0, 0, w, SPEC_H);
+    // place analysis frames at their true times: frame f is centered at t0 + f*tStep
+    var dt = D.spec.tStep, ft0 = D.spec.t0;
+    ctx.drawImage(off, t2x(ft0 - dt / 2), 0, nF * dt * PPS, SPEC_H);
     ctx.font = '11px monospace'; ctx.fillStyle = '#999'; ctx.strokeStyle = '#bbb';
     for (var s = 0.5; s < dur; s += 0.5) {
       var sx = t2x(s);
@@ -167,7 +167,6 @@
   }
 
   function refreshPositions() {
-    var k = 0;
     document.querySelectorAll('.bnd').forEach(function (h) {
       var w = words[h.dataset.idx];
       h.style.left = t2x(w[h.dataset.side]) + 'px';
@@ -240,56 +239,99 @@
     status.textContent = 'boundary split — drag the two edges apart';
   });
 
-  // ---------- playback ----------
-  var stopAt = null;
+  // ---------- Web Audio playback (sample-accurate start AND stop) ----------
+  var actx = new (window.AudioContext || window.webkitAudioContext)();
+  var buffer = null, src = null;
+  var playing = false, startedAt = 0, startOffset = 0, spanEnd = null, pausedAt = 0;
+
+  fetch('/assets/voice-intro.wav')
+    .then(function (r) { return r.arrayBuffer(); })
+    .then(function (ab) { return actx.decodeAudioData(ab); })
+    .then(function (b) { buffer = b; status.textContent = 'audio ready'; })
+    .catch(function (e) { status.textContent = 'audio failed: ' + e; });
+
+  function clearPlaying() {
+    ivEls.forEach(function (p) { p.forEach(function (el) { el.classList.remove('playing'); }); });
+  }
+  function stopSrc() {
+    if (src) { src.onended = null; try { src.stop(); } catch (e) {} src = null; }
+    playing = false;
+    playBtn.textContent = '▶ Play (space)';
+  }
+  function pos() {
+    if (!playing) return pausedAt;
+    // hardware audio clock minus output latency = what is audible right now
+    var lat = actx.outputLatency || actx.baseLatency || 0;
+    var p = startOffset + (actx.currentTime - startedAt) - lat;
+    return Math.max(startOffset, p);
+  }
+  function startPlayback(from, to) {
+    if (!buffer) return;
+    if (actx.state === 'suspended') actx.resume();
+    stopSrc();
+    var end = (to != null) ? to : dur;
+    if (end - from <= 0.001) return;
+    src = actx.createBufferSource();
+    src.buffer = buffer;
+    src.connect(actx.destination);
+    src.start(0, from, end - from); // sample-accurate span
+    startedAt = actx.currentTime; startOffset = from; spanEnd = (to != null) ? to : null;
+    playing = true;
+    playBtn.textContent = '❚❚ Pause (space)';
+    var mine = src;
+    src.onended = function () {
+      if (src !== mine) return;
+      var endedAt = (spanEnd != null) ? spanEnd : dur;
+      playing = false; src = null; spanEnd = null;
+      pausedAt = endedAt >= dur - 0.001 ? 0 : endedAt;
+      cursor.style.display = 'block';
+      cursor.style.left = t2x(endedAt) + 'px';
+      clearPlaying();
+      playBtn.textContent = '▶ Play (space)';
+    };
+  }
+
   function playSpan(idx) {
     var w = words[idx];
-    audio.currentTime = w.t0;
-    stopAt = w.t1;
+    clearPlaying();
+    ivEls[idx].forEach(function (el) { el.classList.add('playing'); });
     cursor.style.display = 'block';
     cursor.style.left = t2x(w.t0) + 'px';
-    ivEls.forEach(function (p) { p.forEach(function (el) { el.classList.remove('playing'); }); });
-    ivEls[idx].forEach(function (el) { el.classList.add('playing'); });
-    audio.play();
+    pausedAt = w.t0;
+    startPlayback(w.t0, w.t1);
   }
-  function tick() {
-    if (!audio.paused && !audio.ended) {
-      // frame-accurate stop at the word's end boundary (timeupdate is far too coarse)
-      if (stopAt !== null && audio.currentTime >= stopAt) {
-        audio.pause();
-        // snap the playhead exactly onto the boundary line, never short or past it
-        cursor.style.display = 'block';
-        cursor.style.left = t2x(stopAt) + 'px';
-        stopAt = null;
-        ivEls.forEach(function (p) { p.forEach(function (el) { el.classList.remove('playing'); }); });
-      } else {
-        cursor.style.display = 'block';
-        // while playing a segment, clamp the visual cursor to the segment end
-        var ct = stopAt !== null ? Math.min(audio.currentTime, stopAt) : audio.currentTime;
-        cursor.style.left = t2x(ct) + 'px';
-      }
-    }
-    requestAnimationFrame(tick);
-  }
-  requestAnimationFrame(tick);
 
-  var playBtn = document.getElementById('play');
   function togglePlay() {
-    stopAt = null;
-    if (audio.paused || audio.ended) audio.play(); else audio.pause();
+    if (playing) {
+      pausedAt = Math.min(pos(), dur);
+      spanEnd = null;
+      stopSrc();
+      clearPlaying();
+    } else {
+      startPlayback(pausedAt);
+    }
   }
   playBtn.addEventListener('click', togglePlay);
-  audio.addEventListener('play', function () { playBtn.textContent = '❚❚ Pause (space)'; });
-  audio.addEventListener('pause', function () { playBtn.textContent = '▶ Play (space)'; });
   window.addEventListener('keydown', function (e) {
     if (e.code === 'Space') { e.preventDefault(); togglePlay(); }
   });
   canvas.addEventListener('click', function (e) {
     var rect = stage.getBoundingClientRect();
-    audio.currentTime = x2t(e.clientX - rect.left);
+    pausedAt = x2t(e.clientX - rect.left);
     cursor.style.display = 'block';
-    cursor.style.left = t2x(audio.currentTime) + 'px';
+    cursor.style.left = t2x(pausedAt) + 'px';
+    if (playing) startPlayback(pausedAt);
   });
+
+  function tick() {
+    if (playing) {
+      var p = (spanEnd != null) ? Math.min(pos(), spanEnd) : Math.min(pos(), dur);
+      cursor.style.display = 'block';
+      cursor.style.left = t2x(p) + 'px';
+    }
+    requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
 
   // ---------- zoom ----------
   document.getElementById('zin').addEventListener('click', function () { setZoom(PPS * 1.4); });

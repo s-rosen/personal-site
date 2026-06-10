@@ -697,7 +697,9 @@
       ctx.save();
       ctx.beginPath(); ctx.rect(0, 0, W * ease(wipe), H); ctx.clip();
       ctx.imageSmoothingEnabled = true;
-      ctx.drawImage(off, 0, 0, W, H);
+      // place analysis frames at their true times: frame f is centered at spec.t0 + f*tStep
+      var fdt = D.spec.tStep, ft0 = D.spec.t0;
+      ctx.drawImage(off, (ft0 - fdt / 2) / dur * W, 0, nF * fdt / dur * W, H);
 
       // formant tracks (red speckles, Praat-style)
       ctx.fillStyle = cssVar('--rust');
