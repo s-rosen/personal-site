@@ -674,6 +674,32 @@
     var tierIpa = document.getElementById('tier-ipa');
     var tierWord = document.getElementById('tier-word');
     var ivs = [];
+
+    // decode effect: labels cycle through pool characters, locking in
+    // left-to-right as each interval fades in (skipped under reduced motion)
+    var IPA_POOL = 'ɪʊɛæɑɒɔəɚŋθðʃʒɹɾʔlmnwjptkbdgszfvhaɪaʊɔɪeɪoʊiuˈː';
+    var WORD_POOL = 'abcdefghijklmnopqrstuvwxyz';
+    function scramble(el, finalText, delayMs, pool, durMs) {
+      if (reduced) return;
+      var len = finalText.length;
+      var DUR = durMs;
+      setTimeout(function () {
+        var start = null;
+        function frame(now) {
+          if (start === null) start = now;
+          var p = Math.min(1, (now - start) / DUR);
+          var lock = Math.floor(p * len);
+          var s = finalText.slice(0, lock);
+          for (var i = lock; i < len; i++) {
+            s += finalText[i] === ' ' ? ' ' : pool[(Math.random() * pool.length) | 0];
+          }
+          el.textContent = p < 1 ? s : finalText;
+          if (p < 1) requestAnimationFrame(frame);
+        }
+        requestAnimationFrame(frame);
+      }, delayMs);
+    }
+    var decodeSeq = 0.95; // seconds; each word's decode starts when the previous ends
     D.words.forEach(function (w, idx) {
       var l = (w.t0 / dur * 100) + '%', wd = ((w.t1 - w.t0) / dur * 100) + '%';
       var a = document.createElement('span');
@@ -682,10 +708,15 @@
       var b = document.createElement('span');
       b.className = 'iv'; b.style.left = l; b.style.width = wd; b.textContent = w.w;
       tierWord.appendChild(b);
+      // words decode strictly one after another, like a live transcription
+      var decodeMs = 60 + Math.max(w.ipa.length, w.w.length) * 8;
       [a, b].forEach(function (el) {
         el.addEventListener('click', function (e) { e.stopPropagation(); playSpan(idx); });
-        el.style.animationDelay = (0.95 + w.t0 / dur * 0.5).toFixed(2) + 's';
+        el.style.animationDelay = decodeSeq.toFixed(2) + 's';
       });
+      scramble(a, w.ipa, decodeSeq * 1000, IPA_POOL, decodeMs);
+      scramble(b, w.w, decodeSeq * 1000, WORD_POOL, decodeMs);
+      decodeSeq += decodeMs / 1000 + 0.025;
       ivs.push({ t0: w.t0, t1: w.t1, els: [a, b] });
     });
     var tierTobi = document.getElementById('tier-tobi');
