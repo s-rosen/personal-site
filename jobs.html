@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Job Dossier — Simon Rosen</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23a3461f'/%3E%3Ctext x='32' y='44' font-family='Georgia,serif' font-size='34' font-weight='bold' fill='%23f2ecdf' text-anchor='middle'%3ESR%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..900;1,9..144,300..900&family=Newsreader:ital,opsz,wght@0,6..72,300..700;1,6..72,300..700&family=IBM+Plex+Mono:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #f2ecdf;
+    --paper-raised: #faf6ec;
+    --ink: #1d1812;
+    --ink-soft: #5b5240;
+    --ink-faint: #948a73;
+    --rust: #a3461f;
+    --ember: #c97144;
+    --rule: #d9d0bb;
+    --rule-soft: #e5ddc9;
+    --grain-opacity: .05;
+    --shadow: 0 1px 2px rgba(29,24,18,.05), 0 10px 30px rgba(29,24,18,.07);
+  }
+  [data-theme="dark"] {
+    --paper: #141009;
+    --paper-raised: #1d1810;
+    --ink: #ece3d0;
+    --ink-soft: #b0a48a;
+    --ink-faint: #7a7058;
+    --rust: #d98a55;
+    --ember: #a85c33;
+    --rule: #383023;
+    --rule-soft: #2a2418;
+    --grain-opacity: .07;
+    --shadow: 0 1px 2px rgba(0,0,0,.35), 0 10px 30px rgba(0,0,0,.4);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: "Newsreader", Georgia, serif;
+    font-optical-sizing: auto;
+    font-size: 18px;
+    line-height: 1.62;
+    -webkit-font-smoothing: antialiased;
+    transition: background-color .4s ease, color .4s ease;
+  }
+  ::selection { background: var(--rust); color: var(--paper); }
+
+  .grain {
+    position: fixed; inset: -50%;
+    width: 200%; height: 200%;
+    pointer-events: none; z-index: 2000;
+    opacity: var(--grain-opacity);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  .wrap { max-width: 880px; margin: 0 auto; padding: 0 30px; }
+
+  /* ---------- Nav ---------- */
+  nav {
+    position: sticky; top: 0; z-index: 100;
+    background: color-mix(in srgb, var(--paper) 84%, transparent);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--rule-soft);
+  }
+  .nav-inner {
+    max-width: 880px; margin: 0 auto; padding: 13px 30px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .nav-name {
+    font-family: "Fraunces", serif; font-weight: 640; font-size: 1.05rem;
+    color: var(--ink); text-decoration: none;
+  }
+  .nav-name em { font-weight: 320; font-style: italic; color: var(--rust); }
+  #theme-toggle {
+    background: none; border: 1px solid var(--rule);
+    border-radius: 999px; width: 34px; height: 34px;
+    cursor: pointer; color: var(--ink-soft);
+    display: grid; place-items: center; font-size: 15px; line-height: 1;
+    transition: border-color .2s ease, color .2s ease, transform .3s ease;
+  }
+  #theme-toggle:hover { border-color: var(--rust); color: var(--rust); transform: rotate(180deg); }
+
+  /* ---------- Header ---------- */
+  header { padding: 64px 0 36px; }
+  .kicker {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: .7rem; letter-spacing: .22em; text-transform: uppercase;
+    color: var(--rust); margin-bottom: 14px;
+  }
+  h1 {
+    font-family: "Fraunces", serif; font-weight: 560; letter-spacing: -.015em;
+    font-size: clamp(2.4rem, 6vw, 3.6rem); line-height: 1.05;
+  }
+  h1 em { font-style: italic; font-weight: 380; color: var(--rust); }
+  .lede {
+    margin-top: 18px; font-style: italic; color: var(--ink-soft);
+    max-width: 36em; font-size: 1.02rem;
+  }
+  .lede a { color: var(--rust); }
+
+  /* ---------- Controls ---------- */
+  .controls {
+    border-top: 1px solid var(--rule);
+    border-bottom: 1px solid var(--rule);
+    padding: 18px 0 20px;
+    display: flex; flex-direction: column; gap: 14px;
+    position: sticky; top: 61px; z-index: 50;
+    background: color-mix(in srgb, var(--paper) 92%, transparent);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+  .ctl-row { display: flex; flex-wrap: wrap; gap: 8px 8px; align-items: baseline; }
+  .ctl-label {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: .62rem; letter-spacing: .18em; text-transform: uppercase;
+    color: var(--ink-faint); min-width: 64px;
+  }
+  .chip {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: .72rem; letter-spacing: .04em;
+    background: none; border: 1px solid var(--rule);
+    color: var(--ink-soft); padding: 5px 13px; cursor: pointer;
+    border-radius: 999px;
+    transition: color .15s ease, border-color .15s ease, background .15s ease;
+  }
+  .chip:hover { border-color: var(--rust); color: var(--rust); }
+  .chip.on {
+    background: var(--rust); border-color: var(--rust); color: var(--paper);
+  }
+  .chip .n { opacity: .6; margin-left: .4em; }
+  .count-line {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: .66rem; letter-spacing: .06em; color: var(--ink-faint);
+  }
+
+  /* ---------- Cards ---------- */
+  .jobs { padding: 34px 0 80px; }
+  .job-card {
+    position: relative;
+    background: var(--paper-raised);
+    border: 1px solid var(--rule-soft);
+    border-left: 3px solid var(--tier-color, var(--rust));
+    box-shadow: var(--shadow);
+    padding: 22px 26px 20px;
+    margin-bottom: 18px;
+    opacity: 0; transform: translateY(14px);
+    animation: cardIn .5s cubic-bezier(.2,.7,.2,1) forwards;
+  }
+  @keyframes cardIn { to { opacity: 1; transform: none; } }
+  @media (prefers-reduced-motion: reduce) {
+    .job-card { animation: none; opacity: 1; transform: none; }
+  }
+  .job-top {
+    display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap;
+  }
+  .job-co {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: .68rem; letter-spacing: .18em; text-transform: uppercase;
+    color: var(--rust);
+  }
+  .job-tier {
+    margin-left: auto;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: .62rem; letter-spacing: .14em; text-transform: uppercase;
+    color: var(--tier-color, var(--rust));
+    border: 1px solid color-mix(in srgb, var(--tier-color, var(--rust)) 50%, transparent);
+    padding: 2px 10px; border-radius: 999px; white-space: nowrap;
+  }
+  .job-title {
+    font-family: "Fraunces", serif; font-weight: 600;
+    font-size: 1.45rem; letter-spacing: -.01em; line-height: 1.22;
+    margin-top: 8px;
+  }
+  .job-meta {
+    margin-top: 5px;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: .7rem; letter-spacing: .04em; color: var(--ink-faint);
+    display: flex; flex-wrap: wrap; gap: 4px 18px;
+  }
+  .job-why {
+    margin-top: 14px; color: var(--ink-soft);
+    font-size: .99rem; line-height: 1.55; max-width: 44em;
+  }
+  .job-why strong { color: var(--ink); font-weight: 600; }
+  .job-caveat {
+    margin-top: 10px; font-style: italic; color: var(--ink-soft);
+    font-size: .92rem; max-width: 44em;
+    padding-left: 14px;
+    border-left: 2px solid var(--ember);
+  }
+  .job-foot { margin-top: 16px; display: flex; gap: 10px; flex-wrap: wrap; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: .7rem; letter-spacing: .1em; text-transform: uppercase;
+    padding: 9px 18px; text-decoration: none;
+    border: 1px solid var(--rule);
+    color: var(--ink); background: var(--paper);
+    transition: border-color .2s ease, color .2s ease, background .2s ease;
+  }
+  .btn:hover { border-color: var(--rust); color: var(--rust); }
+  .btn.primary { background: var(--rust); color: var(--paper); border-color: var(--rust); }
+  .btn.primary:hover { background: var(--ember); border-color: var(--ember); color: var(--paper); }
+
+  .empty {
+    padding: 60px 0; text-align: center;
+    font-style: italic; color: var(--ink-faint);
+  }
+
+  footer {
+    border-top: 1px solid var(--rule-soft);
+    padding: 26px 0 44px;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: .7rem; letter-spacing: .04em; color: var(--ink-faint);
+  }
+
+  @media (max-width: 560px) {
+    .controls { position: static; }
+    .job-tier { margin-left: 0; }
+  }
+</style>
+</head>
+<body>
+<div class="grain" aria-hidden="true"></div>
+
+<nav>
+  <div class="nav-inner">
+    <a class="nav-name" href="index.html">Simon Rosen <em>/ job dossier</em></a>
+    <button id="theme-toggle" aria-label="Toggle dark mode">◐</button>
+  </div>
+</nav>
+
+<header class="wrap">
+  <p class="kicker">Compiled June 10, 2026 · from live job boards</p>
+  <h1>Openings worth <em>a look</em></h1>
+  <p class="lede">Eval, human-data, and voice-AI roles matched against the profile on <a href="index.html">the main page</a> — LLM-as-judge benchmarking, annotation rubrics, TTS quality, agent behavioral policy. SF and NY relocation is on the table. Filter and sort below.</p>
+</header>
+
+<div class="controls">
+  <div class="wrap" style="display:flex;flex-direction:column;gap:12px;">
+    <div class="ctl-row" id="tier-chips"><span class="ctl-label">Fit</span></div>
+    <div class="ctl-row" id="co-chips"><span class="ctl-label">Company</span></div>
+    <div class="ctl-row" id="geo-chips"><span class="ctl-label">Place</span></div>
+    <div class="ctl-row">
+      <span class="ctl-label">Sort</span>
+      <span id="sort-chips"></span>
+      <span class="count-line" id="count" style="margin-left:auto;"></span>
+    </div>
+  </div>
+</div>
+
+<main class="jobs wrap" id="list"></main>
+
+<footer class="wrap">
+  Sources: Greenhouse (Anthropic) · Ashby (OpenAI, ElevenLabs) · jobs.apple.com · amazon.jobs · hume.ai — listings change fast; re-verify before applying.
+</footer>
+
+<script>
+(function () {
+  // ---------- Theme (shares localStorage with index.html) ----------
+  var root = document.documentElement;
+  var stored = null;
+  try { stored = localStorage.getItem('theme'); } catch (e) {}
+  if (stored === 'dark' || (!stored && window.matchMedia('(prefers-color-scheme: dark)').matches))
+    root.setAttribute('data-theme', 'dark');
+  document.getElementById('theme-toggle').addEventListener('click', function () {
+    var dark = root.getAttribute('data-theme') === 'dark';
+    if (dark) root.removeAttribute('data-theme');
+    else root.setAttribute('data-theme', 'dark');
+    try { localStorage.setItem('theme', dark ? 'light' : 'dark'); } catch (e) {}
+  });
+
+  // ---------- Data ----------
+  // tier: 1 best · 2 strong · 3 stretch · 4 watch
+  // geo: east | west | remote | none (watch-only entries)
+  var JOBS = [
+    {
+      co: 'OpenAI', title: 'Program Manager, Human Data',
+      loc: 'San Francisco, CA', geo: 'west', tier: 1,
+      why: 'Running human data collection and quality for model training and evals. <strong>Labeler calibration, annotation guidelines, ground-truth benchmarks</strong> — maps one-to-one onto the VEI work.',
+      url: 'https://jobs.ashbyhq.com/openai/932c9cc1-c542-4f67-8d0d-443de87b8213'
+    },
+    {
+      co: 'OpenAI', title: 'Model Policy, Safety Systems',
+      loc: 'San Francisco, CA', geo: 'west', tier: 1,
+      why: 'Defining what models can and cannot do. The site literally says <strong>“author behavioral policies defining what AI agents can and cannot do”</strong> — lead the cover letter with that bullet.',
+      url: 'https://jobs.ashbyhq.com/openai/f0885aed-a422-4237-8e98-9c5311ed7ae0'
+    },
+    {
+      co: 'Apple', title: 'Annotation Data Scientist, Evaluation Integrity (Siri)',
+      loc: 'Cambridge, MA', geo: 'east', tier: 1,
+      why: 'Team mandate is <strong>“can we trust our evals?”</strong> — human-annotation accuracy and variability, LLM-judges vs. expert review, for a voice assistant. Voice + eval integrity in one role. Base pay $154.6k–$274.9k.',
+      url: 'https://jobs.apple.com/en-us/details/200664186-1242/annotation-data-scientist-evaluation-integrity-siri?team=MLAI'
+    },
+    {
+      co: 'Apple', title: 'AIML — Data Scientist, Evaluation',
+      loc: 'United States', geo: 'west', tier: 2,
+      why: 'Researching evaluation methods for Siri and Apple Intelligence; explicitly wants experience with <strong>accuracy and variability in human annotation data</strong>.',
+      url: 'https://jobs.apple.com/en-us/details/200612736-3337/aiml-data-scientist-evaluation'
+    },
+    {
+      co: 'Apple', title: 'AIML — Sr Data Scientist, Evaluation',
+      loc: 'United States', geo: 'west', tier: 2,
+      why: 'Senior variant of the evaluation data-scientist role: <strong>LLM-judges, dataset composition, human expert review</strong>.',
+      url: 'https://jobs.apple.com/en-us/details/200613444-0836/aiml-sr-data-scientist-evaluation'
+    },
+    {
+      co: 'Anthropic', title: 'Data Operations Manager, Human Data',
+      loc: 'San Francisco / New York', geo: 'east', tier: 2,
+      why: 'Managing human data operations and quality for model training — vendor and labeler management plus <strong>data quality standards</strong>, the operational twin of the calibration work.',
+      url: 'https://job-boards.greenhouse.io/anthropic/jobs/5238460008'
+    },
+    {
+      co: 'Anthropic', title: 'Safeguards Enforcement Analyst, Safety Evaluations',
+      loc: 'SF / NYC / DC · remote-friendly', geo: 'east', tier: 2,
+      why: 'Evaluating model behavior against safety policy — <strong>edge-case adjudication and policy application at scale</strong>, the same muscle as VEI adjudication. DC option is also a short hop from Baltimore.',
+      url: 'https://job-boards.greenhouse.io/anthropic/jobs/5137183008'
+    },
+    {
+      co: 'OpenAI', title: 'Research Engineer, Frontier Evals & Environments',
+      loc: 'San Francisco, CA', geo: 'west', tier: 3,
+      why: 'Building frontier eval suites and agent environments on the Agents team. More engineering-heavy than the profile, but the <strong>eval-design instincts</strong> transfer directly.',
+      url: 'https://jobs.ashbyhq.com/openai/bba18df5-f30f-4d2c-909c-30e651f95579'
+    },
+    {
+      co: 'OpenAI', title: 'Software Engineer, Research — Human Data',
+      loc: 'San Francisco, CA', geo: 'west', tier: 3,
+      why: 'Building the tooling behind human data collection. A software-engineer title, but <strong>deep human-data domain knowledge</strong> is the differentiator they will struggle to hire for.',
+      url: 'https://jobs.ashbyhq.com/openai/4d6a5951-9838-434c-830a-22cb938ea228'
+    },
+    {
+      co: 'Anthropic', title: 'Technical Program Manager, Safeguards (Infrastructure & Evals)',
+      loc: 'SF / NYC / Seattle', geo: 'east', tier: 3,
+      why: 'Running eval infrastructure programs across Safeguards. A TPM pivot — <strong>cross-functional eval program experience</strong> from CLAE is the relevant evidence.',
+      url: 'https://job-boards.greenhouse.io/anthropic/jobs/5108695008'
+    },
+    {
+      co: 'Apple', title: 'Machine Learning Safety: Evaluation Research Engineer',
+      loc: 'San Francisco / Seattle', geo: 'west', tier: 3,
+      why: 'Designing safety evaluations for Apple Intelligence models. Research-engineer flavored, but <strong>behavioral eval development</strong> is on the skills list verbatim.',
+      url: 'https://jobs.apple.com/en-us/search?search=machine%20learning%20safety%20evaluation%20research%20engineer'
+    },
+    {
+      co: 'Amazon', title: 'Language Engineer, AGI Data Services',
+      loc: 'Boston, MA', geo: 'east', tier: 2,
+      why: 'Building training/eval datasets for Amazon’s AGI models, including <strong>speech and multimodal data</strong> — the MFA pipelines and segmental/prosodic scoring framework are directly relevant.',
+      url: 'https://www.amazon.jobs/en/jobs/10421923/language-engineer-artificial-general-intelligence-data-services'
+    },
+    {
+      co: 'Amazon', title: 'Senior Language Engineer, AGI Data Services',
+      loc: 'Boston / Sunnyvale / Bellevue', geo: 'east', tier: 3,
+      why: 'Same team, senior scope: data-creation strategy, human-in-the-loop and synthetic collection, model evaluation.',
+      caveat: 'Lists a Master’s in computational linguistics as a basic qualification — with a B.A., the non-senior posting is the safer application.',
+      url: 'https://www.amazon.jobs/en/jobs/3132875/senior-language-engineer-artificial-general-intelligence-data-services'
+    },
+    {
+      co: 'Anthropic', title: 'Research Engineer, Model Evaluations',
+      loc: 'Remote-friendly · SF / NYC', geo: 'remote', tier: 3,
+      why: 'More engineering-heavy than the profile, but the rare <strong>remote-friendly</strong> eval role at a frontier lab.',
+      url: 'https://job-boards.greenhouse.io/anthropic/jobs/5198255008'
+    },
+    {
+      co: 'Apple', title: 'Senior Annotation Analyst — On Device',
+      loc: 'United States', geo: 'west', tier: 3,
+      why: 'Evaluating Siri responses against guidelines with language and cultural expertise. Easily cleared bar —',
+      caveat: 'likely a step down from current scope; only worth it as a foot in the door.',
+      url: 'https://jobs.apple.com/en-us/details/200610591/senior-annotation-analyst-on-device'
+    },
+    {
+      co: 'ElevenLabs', title: 'No matching openings — watch the board',
+      loc: 'Remote (global)', geo: 'none', tier: 4,
+      why: 'Currently all product engineering and sales, but the <strong>ideal target</strong> for the voice-quality specialty. Cold email or set an alert.',
+      url: 'https://jobs.ashbyhq.com/elevenlabs/'
+    },
+    {
+      co: 'Hume AI', title: 'No matching openings — watch the board',
+      loc: 'NYC / Remote', geo: 'none', tier: 4,
+      why: 'Empathic voice AI — prosody and paralinguistics are their whole product. Only research-engineer roles open now.',
+      url: 'https://www.hume.ai/careers'
+    },
+    {
+      co: 'Apple', title: 'Linguistic Annotation Project Lead, Siri — closed, recurs',
+      loc: 'United States', geo: 'none', tier: 4,
+      why: 'Recently 404’d, but this profile recurs at Apple — set an alert on the <strong>NLP &amp; Speech team page</strong>.',
+      url: 'https://jobs.apple.com/en-us/search?team=natural-language-processing-and-speech-technologies-MLAI-NLP'
+    }
+  ];
+
+  var TIERS = {
+    1: { name: 'Best fit', color: 'var(--rust)' },
+    2: { name: 'Strong', color: 'var(--ember)' },
+    3: { name: 'Stretch', color: 'var(--ink-soft)' },
+    4: { name: 'Watch', color: 'var(--ink-faint)' }
+  };
+  var GEOS = { east: 'East Coast', west: 'West Coast', remote: 'Remote' };
+
+  // ---------- State ----------
+  var state = { tier: 0, co: 'All', geo: 'all', sort: 'fit' };
+
+  // ---------- Controls ----------
+  function chip(label, count, on, fn) {
+    var b = document.createElement('button');
+    b.className = 'chip' + (on ? ' on' : '');
+    b.innerHTML = label + (count != null ? '<span class="n">' + count + '</span>' : '');
+    b.addEventListener('click', fn);
+    return b;
+  }
+  function buildControls() {
+    var tc = document.getElementById('tier-chips');
+    var cc = document.getElementById('co-chips');
+    var gc = document.getElementById('geo-chips');
+    var sc = document.getElementById('sort-chips');
+    [tc, cc, gc, sc].forEach(function (el) {
+      Array.prototype.slice.call(el.querySelectorAll('.chip')).forEach(function (c) { c.remove(); });
+    });
+
+    tc.appendChild(chip('All', JOBS.length, state.tier === 0, function () { state.tier = 0; refresh(); }));
+    Object.keys(TIERS).forEach(function (t) {
+      var n = JOBS.filter(function (j) { return j.tier === +t; }).length;
+      tc.appendChild(chip(TIERS[t].name, n, state.tier === +t, function () { state.tier = +t; refresh(); }));
+    });
+
+    var cos = [];
+    JOBS.forEach(function (j) { if (cos.indexOf(j.co) < 0) cos.push(j.co); });
+    cc.appendChild(chip('All', null, state.co === 'All', function () { state.co = 'All'; refresh(); }));
+    cos.forEach(function (co) {
+      var n = JOBS.filter(function (j) { return j.co === co; }).length;
+      cc.appendChild(chip(co, n, state.co === co, function () { state.co = co; refresh(); }));
+    });
+
+    gc.appendChild(chip('Anywhere', null, state.geo === 'all', function () { state.geo = 'all'; refresh(); }));
+    Object.keys(GEOS).forEach(function (g) {
+      gc.appendChild(chip(GEOS[g], null, state.geo === g, function () { state.geo = g; refresh(); }));
+    });
+
+    [['fit', 'By fit'], ['co', 'By company'], ['loc', 'By location']].forEach(function (s) {
+      sc.appendChild(chip(s[1], null, state.sort === s[0], function () { state.sort = s[0]; refresh(); }));
+    });
+  }
+
+  // ---------- Render ----------
+  function render() {
+    var list = document.getElementById('list');
+    list.innerHTML = '';
+    var rows = JOBS.filter(function (j) {
+      if (state.tier && j.tier !== state.tier) return false;
+      if (state.co !== 'All' && j.co !== state.co) return false;
+      if (state.geo !== 'all' && j.geo !== state.geo) return false;
+      return true;
+    });
+    rows.sort(function (a, b) {
+      if (state.sort === 'co') return a.co.localeCompare(b.co) || a.tier - b.tier;
+      if (state.sort === 'loc') return a.loc.localeCompare(b.loc) || a.tier - b.tier;
+      return a.tier - b.tier || a.co.localeCompare(b.co);
+    });
+
+    document.getElementById('count').textContent =
+      rows.length + ' of ' + JOBS.length + ' roles';
+
+    if (!rows.length) {
+      var e = document.createElement('p');
+      e.className = 'empty';
+      e.textContent = 'Nothing matches those filters.';
+      list.appendChild(e);
+      return;
+    }
+
+    rows.forEach(function (j, i) {
+      var t = TIERS[j.tier];
+      var card = document.createElement('article');
+      card.className = 'job-card';
+      card.style.setProperty('--tier-color', t.color);
+      card.style.animationDelay = (i * 0.05) + 's';
+      var isWatch = j.tier === 4;
+      card.innerHTML =
+        '<div class="job-top">' +
+          '<span class="job-co">' + j.co + '</span>' +
+          '<span class="job-tier">' + t.name + '</span>' +
+        '</div>' +
+        '<h2 class="job-title">' + j.title + '</h2>' +
+        '<div class="job-meta"><span>' + j.loc + '</span></div>' +
+        '<p class="job-why">' + j.why + '</p>' +
+        (j.caveat ? '<p class="job-caveat">' + j.caveat + '</p>' : '') +
+        '<div class="job-foot">' +
+          '<a class="btn' + (isWatch ? '' : ' primary') + '" href="' + j.url + '" target="_blank" rel="noopener">' +
+            (isWatch ? 'Watch board' : 'View posting') + ' →</a>' +
+        '</div>';
+      list.appendChild(card);
+    });
+  }
+
+  function refresh() { buildControls(); render(); }
+  refresh();
+})();
+</script>
+</body>
+</html>

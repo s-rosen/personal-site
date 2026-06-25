@@ -31,14 +31,14 @@ IPA = [
     ("linguist", "ˈlɪŋɡwɪst"),
     ("who", "hu"),
     ("is", "ɪz"),
-    ("interested", "ˈɪntɹəstɪd"),
+    ("interested", "ˈɪntʃɹəstɪd"),  # speaker affricates the /tɹ/ cluster
     ("in", "ɪn"),
     ("solving", "ˈsɑlvɪŋ"),
     ("the", "ði"),
     ("uncanny", "ʌnˈkæni"),
     ("valley", "ˈvæli"),
     ("in", "ɪn"),
-    ("synthetic", "sɪnˈθɛtɪk"),
+    ("synthetic", "sɪnˈθɛɾɪk"),  # medial /t/ flapped
     ("speech", "spitʃ"),
     ("and", "ænd"),
     ("making", "ˈmeɪkɪŋ"),
@@ -199,11 +199,15 @@ if words is None:
 # Hand-edited ToBI (saved from the boundary editor) wins over the TOBI spec
 # list above; delete "tobi" from the JSON to regenerate from the spec.
 tobi = None
+breaks = None
 if OUT.exists():
     _existing = json.loads(OUT.read_text(encoding="utf-8"))
     if _existing.get("tobi"):
         tobi = _existing["tobi"]
         print(f"tobi: reusing {len(tobi)} existing (hand-edited) events")
+    if _existing.get("breaks"):
+        breaks = _existing["breaks"]
+        print(f"breaks: reusing {len(breaks)} existing indices (scripts/make_breaks.py)")
 
 if tobi is None:
     tobi = []
@@ -239,6 +243,8 @@ out = {
     "words": words,
     "tobi": tobi,
 }
+if breaks is not None:
+    out["breaks"] = breaks
 payload = json.dumps(out, ensure_ascii=False, separators=(",", ":"))
 OUT.write_text(payload, encoding="utf-8")
 OUT.with_suffix(".js").write_text("window.SPEECH_DATA=" + payload + ";", encoding="utf-8")
