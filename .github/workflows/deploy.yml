@@ -1,0 +1,22 @@
+name: Deploy to Cloudflare Pages
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # ponytail: plain static site, "build" = gather the files the site needs
+      - name: Stage site
+        run: |
+          mkdir -p dist
+          cp index.html jobs.html dist/
+          cp -r assets dist/
+      - uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy dist --project-name=simonrosen --branch=main
