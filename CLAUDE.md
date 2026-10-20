@@ -21,15 +21,17 @@ it across sessions.
 
 ## Content rules
 
-- **Copy is straight and professional.** The design can be distinctive; the words
-  can't be clever. Removed and not coming back: the journal/academic conceits ("№ 17
-  field notes", the dictionary lemma, "fig. 1" captions, § symbols, "N.B." tags, the
-  feature-bundle footer joke). Section labels look like "01 About"; tags like "In
-  progress".
-- Design elements that stay: the IPA gloss over the name, feature-bundle bracket
-  notation for skills, and the waveform/spectrogram. Fonts are Fraunces + Newsreader +
-  IBM Plex Mono, on a cream/ink/rust palette with a light/dark toggle (localStorage).
-  Motion is delta-time based, with reduced-motion fallbacks.
+- **Content source is now Simon's latest resume PDF** (Oct 2026, EMNLP version); keep the
+  site's experience bullets, skills and publication in line with it.
+- **Copy is straight and professional; no hype, no gimmicks.** Simon called the old
+  feature-bundle skills section gimmicky (2026-10-20). Skills are a plain list:
+  category + comma-separated items. Also gone and not coming back: the journal/academic
+  conceits, the drop cap, the "Let's talk" contact pitch, and text-decode/flicker effects
+  on the spectrogram tiers.
+- **Design (redesign of 2026-10-20): minimal.** One column (max 780px), section labels in a
+  left column, IBM Plex Sans + Plex Mono, near-white/ink palette with one rust accent,
+  light/dark toggle (localStorage, applied in `<head>` before paint). No grain, shadows,
+  or scroll reveals. Kept: the IPA gloss over the name and the spectrogram figure.
 - **Phone number is deliberately omitted.** Email and LinkedIn are included.
 - **LinkedIn is `linkedin.com/in/simon-rosen-linguist`.** `/in/simonrosen` is a
   different person; it was wrongly used here and in the resumes until 2026-07-22.
@@ -66,12 +68,8 @@ An interactive Praat-style spectrogram of Simon's ElevenLabs TTS intro clip
   deploy a *changed file at the same path*, then purge the zone. Verify with the bare
   URL on the custom domain.
 
-## Paper embargo
+## Publication
 
-`assets/TTS_Eval_Critique.pdf` (the ACL 2026 paper, "Beyond Naturalness: Probing
-Automated TTS Evaluators…") is a **554-byte "coming soon" placeholder**. The real PDF
-was scrubbed from git history. As of 2026-10-13 the publications entry still reads
-"Under review — ACL 2026" with no link. **To publish:** overwrite the PDF with the real
-one, restore the "Read the submission" link in the publications section, then commit
-and push. The changed asset busts the hostname cache by itself. Ask Simon whether the
-archive is live before doing this.
+"Beyond Naturalness" was accepted to **EMNLP 2026 Main** and is public at
+arXiv:2608.09930; the site links the arXiv abstract page. The old embargo placeholder
+`assets/TTS_Eval_Critique.pdf` was deleted on 2026-10-20. Don't re-host the PDF.
