@@ -30,7 +30,17 @@ it across sessions.
   left column, IBM Plex Sans + Plex Mono, near-white/ink palette with one rust accent,
   light/dark toggle (localStorage, applied in `<head>` before paint). No grain, shadows,
   or scroll reveals. Kept: the IPA gloss over the name and the spectrogram figure.
-- **Phone number is deliberately omitted.** Email and LinkedIn are included.
+- **Phone number is deliberately omitted**, including from the downloadable
+  `assets/Simon_Rosen_Resume.pdf`. That file is Simon's resume PDF with the phone glyphs
+  deleted from the header's `TJ` array in the page content stream (PyMuPDF), the line's `Td`
+  shifted by half the removed width to stay centered, and the next `Td` and the header link
+  rects compensated. Re-setting the text with `insert_text` instead garbles spaces and
+  hyphens on extraction (bad for ATS). Redo this whenever the resume is replaced. Email and LinkedIn are included.
+- **Results are internal** except what the paper published. Don't ask for or add
+  numbers or outcomes from ServiceNow projects; the Experience section says so in one line.
+- **Languages:** fluent only in English; university coursework in Mandarin and Indonesian.
+- **Engineering:** Simon is not an experienced engineer and doesn't want to overstate it.
+  Keep the tooling bullets modest. He has no Master's or PhD; don't frame around it.
 - **LinkedIn is `linkedin.com/in/simon-rosen-linguist`.** `/in/simonrosen` is a
   different person; it was wrongly used here and in the resumes until 2026-07-22.
 
