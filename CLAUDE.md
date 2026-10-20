@@ -7,8 +7,6 @@ it across sessions.
 
 - `index.html` is the whole site in one self-contained file. `jobs.html` is a second
   page, and `assets/` holds media and data.
-- Content source: `C:\Users\Owner\Documents\Resume\resume_anthropic.tex` (the richer
-  of the two resume versions).
 - **Hosting: Cloudflare Pages**, project `simonrosen`, custom domains `simonrosen.me` +
   `www.` (proxied CNAMEs → `simonrosen.pages.dev`; the domain is registered at
   Cloudflare). Pushing to `master` on GitHub `s-rosen/personal-site` runs

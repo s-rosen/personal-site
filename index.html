@@ -25,7 +25,7 @@
     --bg-2: #ffffff;
     --ink: #161616;
     --ink-2: #4a4a48;
-    --ink-3: #8a8a86;
+    --ink-3: #6f6f6b;
     --rule: #e4e4e0;
     --accent: #9b3d1a;
     --accent-2: #c4693a;
@@ -35,7 +35,7 @@
     --bg-2: #181818;
     --ink: #ececea;
     --ink-2: #b4b4b0;
-    --ink-3: #7c7c78;
+    --ink-3: #8f8f8b;
     --rule: #2c2c2a;
     --accent: #d8916a;
     --accent-2: #b5704a;
@@ -71,7 +71,7 @@
     font: inherit; color: var(--ink-3);
   }
   #theme-toggle:hover { color: var(--accent); }
-  @media (max-width: 600px) { .topbar a { display: none; } }
+  @media (max-width: 600px) { .topbar { gap: 14px; font-size: .8rem; } }
 
   /* ---------- Intro ---------- */
   .intro { padding-top: 72px; }
@@ -262,7 +262,7 @@
           <div class="praat-cursor" id="praat-cursor"></div>
         </div>
       </div>
-      <figcaption class="praat-cap">A synthesized introduction, annotated: broadband spectrogram (0–5 kHz) with formants and pitch, and ToBI tone, IPA, word, and break-index tiers. Click a word or drag across a span to play it.</figcaption>
+      <figcaption class="praat-cap">A short introduction synthesized with ElevenLabs, annotated: broadband spectrogram (0–5 kHz) with formants and pitch, and ToBI tone, IPA, word, and break-index tiers. Click a word or drag across a span to play it.</figcaption>
     </figure>
     <audio id="voice-audio" src="assets/voice-intro.m4a" preload="metadata"></audio>
   </header>
@@ -277,11 +277,11 @@
             <div class="org">ServiceNow, LUNAR team (Linguistic Unit for NLU Analysis &amp; Research)</div>
             <ul>
               <li>Co-designed a 10-dimension annotation schema that breaks TTS “naturalness” into word-level, prosodic, and paralinguistic dimensions, and built an 860-utterance benchmark labeled by trained linguist raters (EMNLP 2026, co-first author).</li>
-              <li>Compared eight automated speech evaluators (four MOS predictors, four audio-LLM judges) against human labels under four prompting conditions, showing for each dimension where each type of evaluator can and cannot replace human listeners.</li>
+              <li>Compared eight automated speech evaluators (four MOS predictors, four audio-LLM judges) against human labels under four prompting conditions, MOS predictors mostly tracked acoustic signal quality, and audio-LLM judges caught some error types depending on the prompt. Neither reliably detected the full range of linguistic errors.</li>
               <li>Designed and ran a multilingual TTS vendor comparison (Cartesia vs. ElevenLabs). Wrote test sentences drawn from ServiceNow case language and text normalization edge cases (symbols, math, units, URLs), defined a rubric pairing holistic 1–5 ratings with per-category head-to-head judgments, and adapted it for Japanese with a native-speaker linguist.</li>
               <li>Built a rating framework for AI voice agent conversations covering speech fluency, tool calling, task completion, and helpfulness, and wrote its annotation guidelines.</li>
               <li>Ran the labeling efforts that produced human benchmarks for customer-facing voice fluency judges: wrote the guidelines, onboarded labelers, and presented results across agents, separating ASR-driven failures (such as repeated confirmations) from conversation-flow and voice-style problems.</li>
-              <li>Leading success labeling for DocQnA and building the matching LLM judge.</li>
+              <li>Leading success labeling for document question answering (DocQnA) and building the matching LLM judge.</li>
               <li>Built and maintain the internal labeling tools used on these projects, and the team’s project-tracking app.</li>
             </ul>
           </div>
@@ -360,8 +360,6 @@
     try { localStorage.setItem('theme', dark ? 'light' : 'dark'); } catch (e) {}
     syncToggle();
   });
-
-  var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   // ---------- Praat-style spectrogram figure ----------
   var D = window.SPEECH_DATA;
@@ -468,7 +466,8 @@
     // intro choreography: spectrogram fades up, formants scatter in,
     // pitch contour draws itself, axes arrive last (delta-time, 0..INTRO_LEN s)
     var INTRO_LEN = 1.6;
-    var intro = reduced ? INTRO_LEN : 0;
+    var intro = INTRO_LEN; // ponytail: intro animation removed; figure draws in its final state
+
     function ease(t) { return t <= 0 ? 0 : t >= 1 ? 1 : 1 - Math.pow(1 - t, 3); }
     function phase(start, len) { return ease((intro - start) / len); }
     var fJit = {};
@@ -817,7 +816,6 @@
 
     buildOffscreen();
     draw();
-    if (!reduced) setTimeout(ensureLoop, 150); // short fade-in of the figure
     // label widths change once the mono webfont arrives; recompute the zoom then
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { draw(); });
   }
