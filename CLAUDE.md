@@ -19,8 +19,7 @@ it across sessions.
 
 ## Content rules
 
-- **Content source: `Documents\Resume
-esume_general.tex`**, Simon's general resume
+- **Content source: `Documents\Resume\resume_general.tex`**, Simon's general resume
   (the Oct 2026 PDF he sent was tailored to a ServiceNow internal posting).
   `build_general.ps1` there builds `resume_general.pdf` (with phone) and the no-phone
   web version, and copies the latter to `assets/Simon_Rosen_Resume.pdf`. Keep the site's
