@@ -19,8 +19,13 @@ it across sessions.
 
 ## Content rules
 
-- **Content source is now Simon's latest resume PDF** (Oct 2026, EMNLP version); keep the
-  site's experience bullets, skills and publication in line with it.
+- **Content source: `Documents\Resume
+esume_general.tex`**, Simon's general resume
+  (the Oct 2026 PDF he sent was tailored to a ServiceNow internal posting).
+  `build_general.ps1` there builds `resume_general.pdf` (with phone) and the no-phone
+  web version, and copies the latter to `assets/Simon_Rosen_Resume.pdf`. Keep the site's
+  bullets, skills and publication in line with it. No vendor names in the vendor
+  comparison; the test language is described as "ITSM and CSM".
 - **Copy is straight and professional; no hype, no gimmicks.** Simon called the old
   feature-bundle skills section gimmicky (2026-10-20). Skills are a plain list:
   category + comma-separated items. Also gone and not coming back: the journal/academic
@@ -30,12 +35,8 @@ it across sessions.
   left column, IBM Plex Sans + Plex Mono, near-white/ink palette with one rust accent,
   light/dark toggle (localStorage, applied in `<head>` before paint). No grain, shadows,
   or scroll reveals. Kept: the IPA gloss over the name and the spectrogram figure.
-- **Phone number is deliberately omitted**, including from the downloadable
-  `assets/Simon_Rosen_Resume.pdf`. That file is Simon's resume PDF with the phone glyphs
-  deleted from the header's `TJ` array in the page content stream (PyMuPDF), the line's `Td`
-  shifted by half the removed width to stay centered, and the next `Td` and the header link
-  rects compensated. Re-setting the text with `insert_text` instead garbles spaces and
-  hyphens on extraction (bad for ATS). Redo this whenever the resume is replaced. Email and LinkedIn are included.
+- **Phone number is deliberately omitted**, including from the downloadable PDF (the
+  `\nophone` build of the resume). Email and LinkedIn are included.
 - **Results are internal** except what the paper published. Don't ask for or add
   numbers or outcomes from ServiceNow projects; the Experience section says so in one line.
 - **Languages:** fluent only in English; university coursework in Mandarin and Indonesian.
