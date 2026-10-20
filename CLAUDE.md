@@ -26,7 +26,7 @@ it across sessions.
   category + comma-separated items. Also gone and not coming back: the journal/academic
   conceits, the drop cap, the "Let's talk" contact pitch, and text-decode/flicker effects
   on the spectrogram tiers.
-- **Design (redesign of 2026-10-20): minimal.** One column (max 780px), section labels in a
+- **Design (redesign of 2026-10-20): minimal.** One column (max 1120px; Simon found 780px left too much dead space on his 2560px-wide view), section labels in a
   left column, IBM Plex Sans + Plex Mono, near-white/ink palette with one rust accent,
   light/dark toggle (localStorage, applied in `<head>` before paint). No grain, shadows,
   or scroll reveals. Kept: the IPA gloss over the name and the spectrogram figure.
